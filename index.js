@@ -8,5 +8,6 @@ module.exports = {
     BlackScholesSwap: require("./artifacts/contracts/BlackScholesSwap.sol/BlackScholesSwap.json"),
     UniswapOracle: require("./artifacts/contracts/UniswapOracle.sol/UniswapOracle.json"),
     IOracle: require("./artifacts/contracts/interface/IOracle.sol/IOracle.json"),
+    Helper: require("./artifacts/contracts/Helper.sol/Helper.json"),
   },
 };

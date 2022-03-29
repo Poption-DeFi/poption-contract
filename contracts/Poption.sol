@@ -21,7 +21,6 @@ contract Poption {
 
     IOracle public immutable oracle;
     uint256 public immutable settleTime;
-    uint256 public immutable destoryTime;
     address public immutable token;
     bytes4 private constant SELECTOR_TRANSFERFROM =
         bytes4(keccak256(bytes("transferFrom(address,address,uint256)")));
@@ -40,13 +39,11 @@ contract Poption {
         address _token,
         address _oracle,
         uint256 _settleTime,
-        uint256 _destoryDelay,
         uint128[SLOT_NUM] memory slots_
     ) {
         token = _token;
         oracle = IOracle(_oracle);
         settleTime = _settleTime;
-        destoryTime = _destoryDelay + _settleTime;
         slots = slots_;
     }
 

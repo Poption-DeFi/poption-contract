@@ -85,7 +85,6 @@ describe("test poption", () => {
       erc20.address,
       oracle.address,
       time + 200,
-      200,
       _.range(100000, 1600001, 100000)
     );
     await poption.deployed();

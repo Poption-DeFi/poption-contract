@@ -42,31 +42,12 @@ contract BlackScholesSwap is BaseCFMMSwap {
     }
 
     function init() external override onlyOwner noReentrant {
+        require(!_isInited, "INITED");
         super._init();
         for (uint256 i = 0; i < SLOT_NUM; i++) {
             lnSlots[i] = slots[i].ln();
         }
-    }
-
-    function getHeadTail() public view returns (uint128 head, uint128 tail) {
-        if (block.timestamp < settleTime) {
-            uint128 price = IOracle(oracle).get();
-            int128 std = int128(
-                volatility.mul(
-                    (uint128((settleTime - block.timestamp) << 64)).sqrt()
-                )
-            );
-            int128 bias0;
-            if (isCash) {
-                bias0 = price.ln().div(std) - std / 2;
-            } else {
-                bias0 = price.ln().div(std) + std / 2;
-            }
-            head = Math64x64.normCdf(lnSlots[0].div(std) - bias0);
-            tail =
-                0x10000000000000000 -
-                Math64x64.normCdf(lnSlots[SLOT_NUM - 1].div(std) - bias0);
-        }
+        _isInited = true;
     }
 
     function getWeight()
@@ -122,7 +103,7 @@ contract BlackScholesSwap is BaseCFMMSwap {
             }
             weight[SLOT_NUM - 1] += 0x10000000000000000 - a0;
         } else {
-            weight = getWeightAfterSettle(IOracle(oracle).get());
+            weight = getWeightAfterSettle();
         }
     }
 }

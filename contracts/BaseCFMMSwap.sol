@@ -26,19 +26,19 @@ contract BaseCFMMSwap {
     address public immutable owner;
     uint256 public immutable closeTime;
     uint256 public immutable settleTime;
-    uint256 public immutable destoryTime;
+    uint256 public immutable destroyTime;
 
     bool internal locked;
     uint128 public feeRate;
     uint128 public l2FeeRate;
 
-    bool public isOpen;
+    bool internal _isInited;
 
     constructor(
         address _owner,
         address _poption,
         uint256 _closeTime,
-        uint256 _destoryTime,
+        uint256 _destroyTime,
         uint128 _feeRate,
         uint128 _l2FeeRate
     ) {
@@ -47,10 +47,10 @@ contract BaseCFMMSwap {
         address token;
         uint256 _settleTime;
         (token, oracle, _settleTime, slots) = Poption(_poption).getState();
-        require(_closeTime < _settleTime && _settleTime < _destoryTime, "TCK");
+        require(_closeTime < _settleTime && _settleTime < _destroyTime, "TCK");
         closeTime = _closeTime;
         settleTime = _settleTime;
-        destoryTime = _destoryTime;
+        destroyTime = _destroyTime;
         feeRate = _feeRate;
         l2FeeRate = _l2FeeRate;
     }
@@ -73,10 +73,7 @@ contract BaseCFMMSwap {
     }
 
     modifier marketOpen() {
-        if (isOpen && (block.timestamp > closeTime)) {
-            isOpen = false;
-        }
-        require(isOpen, "MC");
+        require(_isInited && (block.timestamp > closeTime), "MC");
         _;
     }
 
@@ -106,7 +103,7 @@ contract BaseCFMMSwap {
                 0x1000000000000000
             ];
         } else {
-            weight = getWeightAfterSettle(IOracle(oracle).get());
+            weight = getWeightAfterSettle();
         }
     }
 
@@ -122,11 +119,12 @@ contract BaseCFMMSwap {
         liqPoolShare[msg.sender] += share;
         valueNoFee[msg.sender] = 0x7fffffffffffffffffffffffffffffff;
         liqPoolShareAll += share;
-        isOpen = true;
     }
 
     function init() external virtual onlyOwner noReentrant {
+        require(!_isInited, "INITED");
         _init();
+        _isInited = true;
     }
 
     function getStatus()
@@ -151,41 +149,56 @@ contract BaseCFMMSwap {
         }
     }
 
-    function getWeightAfterSettle(uint128 price)
+    function getWeightAfterSettle()
         internal
         view
         returns (uint128[SLOT_NUM] memory weight)
     {
+        weight = [uint128(0), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        uint8 settleIdx;
+        uint128 settleWeight0;
+        uint128 settleWeight1;
         if (poption.isSettled()) {
-            uint8 i = poption.settleIdx();
-
-            weight = [uint128(0), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-            weight[i] = 0x10000000000000000;
+            settleIdx = poption.settleIdx();
+            settleWeight0 = poption.settleWeight0();
+            settleWeight1 = poption.settleWeight1();
         } else {
+            uint128 price = IOracle(oracle).get();
             if (price <= slots[0]) {
-                weight[0] = 0x10000000000000000;
+                settleIdx = 1;
+                settleWeight0 = 1;
+                settleWeight1 = 0;
+            } else if (price >= slots[SLOT_NUM - 1]) {
+                settleIdx = uint8(SLOT_NUM - 1);
+                settleWeight0 = 0;
+                settleWeight1 = 1;
             } else {
-                weight[0] = 0;
-            }
-            for (uint256 i = 1; i < SLOT_NUM - 1; i++) {
-                if ((slots[i - 1] < price) && (slots[i] >= price)) {
-                    weight[i] = 0x10000000000000000;
-                } else {
-                    weight[i] = 0;
+                uint8 h = uint8(SLOT_NUM - 1);
+                uint8 l = 0;
+                settleIdx = (h + l) >> 1;
+                while (h > l) {
+                    if (slots[settleIdx] >= price) {
+                        h = settleIdx;
+                    } else {
+                        l = settleIdx + 1;
+                    }
+                    settleIdx = (h + l) >> 1;
                 }
-            }
-            if (price > slots[SLOT_NUM - 1]) {
-                weight[SLOT_NUM - 1] = 0x10000000000000000;
-            } else {
-                weight[SLOT_NUM - 1] = 0;
+                uint128 delta = slots[settleIdx] - slots[settleIdx - 1];
+                settleWeight0 = (slots[settleIdx] - price).div(delta);
+                settleWeight1 = (price - slots[settleIdx - 1]).div(delta);
             }
         }
+        uint128 p0 = settleWeight0.mul(liqPool[settleIdx - 1]);
+        uint128 p1 = settleWeight1.mul(liqPool[settleIdx]);
+        weight[settleIdx - 1] = p0.div(p0 + p1);
+        weight[settleIdx] = p1.div(p0 + p1);
     }
 
     function _toSwap(
         uint128[SLOT_NUM] calldata _out,
         uint128[SLOT_NUM] calldata _in
-    ) private {
+    ) internal {
         uint128[SLOT_NUM] memory weight = getWeight();
         int256 const_now = tradeFunction(liqPool, weight);
         uint128[SLOT_NUM] memory lp_to;
@@ -205,30 +218,18 @@ contract BaseCFMMSwap {
         uint128[SLOT_NUM] calldata _out,
         uint128[SLOT_NUM] calldata _in
     ) external noReentrant onlyPoption {
+        require(block.timestamp < closeTime, "MCT");
         _toSwap(_out, _in);
     }
 
-    /** not good sign
-    function swap(
-        uint128[SLOT_NUM] calldata _out,
-        uint128[SLOT_NUM] calldata _in,
-        uint64 _seed,
-        bytes calldata _signature
-    ) external noReentrant marketOpen {
-        _toSwap(_out, _in);
-        poption.transfer(msg.sender, _out);
-        poption.transferFrom(msg.sender, address(this), _in, _seed, _signature);
-    }
-   */
-
-    function destory() public onlyOwner noReentrant {
-        require(block.timestamp > destoryTime);
+    function destroy() public onlyOwner noReentrant {
+        require(block.timestamp > destroyTime, "NDT");
         uint128[SLOT_NUM] memory rest = poption.balanceOf(address(this));
         poption.transfer(owner, rest);
         selfdestruct(payable(owner));
     }
 
-    function _toLiquidIn(uint128 frac, address msgSender) private {
+    function _toLiquidIn(uint128 frac, address msgSender) internal {
         uint128 priceDivisor = 0;
         uint128 shareAdd = frac.mul(liqPoolShareAll);
         liqPoolShareAll += shareAdd;
@@ -248,27 +249,6 @@ contract BaseCFMMSwap {
     {
         _toLiquidIn(frac, sender);
     }
-
-    /**
-    function liquidIn(
-        uint128 frac,
-        uint64 _seed,
-        bytes calldata _signature
-    ) external noReentrant {
-        uint128[SLOT_NUM] memory option;
-        for (uint256 i = 0; i < SLOT_NUM; i++) {
-            option[i] = frac.mul(liqPool[i]);
-        }
-        poption.transferFrom(
-            msg.sender,
-            address(this),
-            option,
-            _seed,
-            _signature
-        );
-        _toLiquidIn(frac, msg.sender);
-    }
-       */
 
     function liquidOut(uint128 _share) public noReentrant {
         uint128 share = liqPoolShare[msg.sender];

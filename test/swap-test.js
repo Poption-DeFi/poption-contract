@@ -1,7 +1,7 @@
 const chai = require("chai");
 const { solidity } = require("ethereum-waffle");
 const { BigNumber, utils } = require("ethers");
-const { ethers } = require("hardhat");
+const { ethers, network } = require("hardhat");
 const { _ } = require("lodash");
 const { parseEther, solidityKeccak256 } = utils;
 const { expect } = chai;
@@ -51,7 +51,6 @@ const prepareEnv = async () => {
     erc20.address,
     oracle.address,
     time + 200,
-    200,
     _.map(slots, BigNumber.from)
   );
   await poption.deployed();
@@ -72,8 +71,8 @@ const inits = {
     return await Swap.deploy(
       addr1.address,
       poption.address,
-      settleTime - 100,
-      settleTime + 100,
+      +settleTime - 100,
+      +settleTime + 100,
       BigNumber.from("0x10200000000000000"),
       BigNumber.from("0x28f5c28f5c29000")
     );
@@ -84,8 +83,8 @@ const inits = {
     return await Swap.deploy(
       addr1.address,
       poption.address,
-      settleTime - 100,
-      settleTime + 100,
+      +settleTime - 100,
+      +settleTime + 100,
       BigNumber.from("0x10200000000000000"),
       BigNumber.from("0x28f5c28f5c29000"),
       BigNumber.from("416757209401000000"),
@@ -111,9 +110,8 @@ _.mapKeys(inits, (getSwap, swapName) => {
         swap.address,
         _.map(_.range(16), () => parseEther("1.9"))
       );
-      expect(await swap.isOpen()).to.false;
       await expect(swap.connect(addr1).init()).to.fulfilled;
-      expect(await swap.isOpen()).to.true;
+      await expect(swap.connect(addr1).init()).to.rejectedWith(Error, "INITED");
       expect((await swap.getStatus())[1]).to.eql(
         await poption.balanceOf(swap.address)
       );
@@ -220,7 +218,6 @@ _.mapKeys(inits, (getSwap, swapName) => {
       );
       const share = await swap.liqPoolShare(addr2.address);
       expect(+share).to.equal(+cfmm.BF(+shareAll).mul(0.25));
-      console.log(`share: ${utils.formatEther(share)}`);
       expect(shareAll.add(await swap.liqPoolShare(addr2.address))).to.equal(
         await swap.liqPoolShareAll()
       );
@@ -245,7 +242,6 @@ _.mapKeys(inits, (getSwap, swapName) => {
       );
       const share = await swap.liqPoolShare(addr2.address);
       expect(+share).to.equal(+cfmm.BF(+shareAll).mul(0.24));
-      console.log(`share: ${utils.formatEther(share)}`);
       expect(cfmm.BF(shareAll.toString()).mul(1.04).toFixed(0)).to.equal(
         (await swap.liqPoolShareAll()).toString()
       );
@@ -289,7 +285,6 @@ _.mapKeys(inits, (getSwap, swapName) => {
       );
       const share_ = await swap.liqPoolShare(addr2.address);
       expect(share_).to.equal(share.sub(shareOut));
-      console.log(`share: ${utils.formatEther(share)}`);
       expect(await swap.liqPoolShareAll()).to.equal(shareAll.sub(shareOut));
     });
 
@@ -311,8 +306,50 @@ _.mapKeys(inits, (getSwap, swapName) => {
       );
       const share_ = await swap.liqPoolShare(addr2.address);
       expect(+share_).to.equal(0);
-      console.log(`share: ${utils.formatEther(share)}`);
       expect(+(await swap.liqPoolShareAll())).to.gt(+shareAll.sub(shareOut));
+    });
+
+    it("cannot swap after close time", async () => {
+      await network.provider.send("evm_increaseTime", [100]);
+      await network.provider.send("evm_mine");
+      const _in = _.map(_.range(16), (i) => BigNumber.from(i * 1000000));
+      const _out = _.map(_.range(16), (i) => BigNumber.from(i * 800000));
+
+      await expect(
+        poption.connect(addr2).swap(swap.address, _out, _in)
+      ).to.rejectedWith(Error, /.*MCT.*/);
+    });
+
+    it("cannot destory before destory time", async () => {
+      await expect(swap.connect(addr1).destroy()).to.rejectedWith(
+        Error,
+        /.*NDT.*/
+      );
+    });
+
+    it("cannot destory by not owner", async () => {
+      await network.provider.send("evm_increaseTime", [301]);
+      await network.provider.send("evm_mine");
+      await expect(swap.connect(addr2).destroy()).to.rejectedWith(
+        Error,
+        /.*OO.*/
+      );
+    });
+
+    it("can destory by not owner", async () => {
+      await network.provider.send("evm_increaseTime", [301]);
+      await network.provider.send("evm_mine");
+
+      const [balBefore, balSwap] = await Promise.all([
+        poption.balanceOf(addr1.address),
+        poption.balanceOf(swap.address),
+      ]);
+      await expect(swap.connect(addr1).destroy()).to.fulfilled;
+      console.log("2");
+      const balAfter = await poption.balanceOf(addr1.address);
+      expect(_.map(balAfter, (i) => i.toString())).to.eql(
+        _.map(_.zip(balBefore, balSwap), ([i, j]) => i.add(j).toString())
+      );
     });
   });
 });
@@ -345,9 +382,7 @@ describe(`test BlackScholesSwap 2`, () => {
       swap.address,
       _.map(_.range(16), () => parseEther("1.9"))
     );
-    expect(await swap.isOpen()).to.false;
     await expect(swap.connect(addr1).init()).to.fulfilled;
-    expect(await swap.isOpen()).to.true;
     const status = await swap.getStatus();
     expect(status[1]).to.eql(await poption.balanceOf(swap.address));
     expect(await swap.liqPoolShareAll()).to.eql(parseEther("1.9"));

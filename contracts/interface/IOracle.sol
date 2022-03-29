@@ -8,6 +8,8 @@
 pragma solidity ^0.8.4;
 
 interface IOracle {
+    function source() external view returns (address);
+
     function get() external view returns (uint128);
 
     function token0() external view returns (address);
