@@ -1,5 +1,5 @@
 require("@babel/register");
-require("dotenv").config();
+const { parsed } = require("dotenv").config();
 
 require("@nomiclabs/hardhat-etherscan");
 require("@nomiclabs/hardhat-waffle");
@@ -23,6 +23,9 @@ module.exports = {
     },
   },
   networks: {
+    polygon: {
+      url: parsed.POLYGON_URL,
+    },
     hardhat: {
       chainId: 1999,
     },
@@ -32,6 +35,6 @@ module.exports = {
     currency: "CNY",
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
+    apiKey: parsed.ETHERSCAN_API_KEY,
   },
 };
