@@ -2,7 +2,7 @@
 
 This repository contains the smart contracts for the Poption Protocol.
 
-The product is at https://www.poption.exchange/ . Deployed contract address can also be found there.
+The product is at https://www.poption.exchange/ . Deployed contracts can also be found there.
 
 ## Test
 
