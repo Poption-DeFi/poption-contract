@@ -1,5 +1,7 @@
 # Poption contract
 
+[![Test Contract](https://github.com/Poption-DeFi/poption-contract/actions/workflows/github-test.yml/badge.svg)](https://github.com/Poption-DeFi/poption-contract/actions/workflows/github-test.yml)
+
 This repository contains the smart contracts for the Poption Protocol.
 
 The product is at https://www.poption.exchange/ . Deployed contracts can also be found there.

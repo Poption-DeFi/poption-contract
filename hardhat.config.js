@@ -16,7 +16,7 @@ require("solidity-coverage");
  */
 module.exports = {
   solidity: {
-    version: "0.8.4",
+    version: "0.8.12",
     settings: {
       optimizer: {
         enabled: true,
@@ -26,17 +26,16 @@ module.exports = {
   },
   networks: {
     polygon: {
-      url: parsed.POLYGON_URL,
+      url: process.env.POLYGON_URL || "",
     },
     hardhat: {
       chainId: 1999,
     },
   },
   gasReporter: {
-    enabled: process.env.REPORT_GAS !== undefined,
-    currency: "CNY",
+    enabled: process.env.REPORT_GAS || false,
   },
   etherscan: {
-    apiKey: parsed.ETHERSCAN_API_KEY,
+    apiKey: process.env.ETHERSCAN_API_KEY || "",
   },
 };
