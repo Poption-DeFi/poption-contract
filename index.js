@@ -1,5 +1,4 @@
 module.exports = {
-  cfmm: require("./cfmm.js"),
   artifacts: {
     ERC20: require("./artifacts/@openzeppelin/contracts/token/ERC20/ERC20.sol/ERC20.json"),
     Poption: require("./artifacts/contracts/Poption.sol/Poption.json"),

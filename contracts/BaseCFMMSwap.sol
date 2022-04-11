@@ -72,11 +72,6 @@ contract BaseCFMMSwap {
         _;
     }
 
-    modifier marketOpen() {
-        require(_isInited && (block.timestamp > closeTime), "MC");
-        _;
-    }
-
     function getWeight()
         internal
         view
@@ -154,7 +149,6 @@ contract BaseCFMMSwap {
         view
         returns (uint128[SLOT_NUM] memory weight)
     {
-        weight = [uint128(0), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         uint8 settleIdx;
         uint128 settleWeight0;
         uint128 settleWeight1;
@@ -166,12 +160,12 @@ contract BaseCFMMSwap {
             uint128 price = IOracle(oracle).get();
             if (price <= slots[0]) {
                 settleIdx = 1;
-                settleWeight0 = 1;
+                settleWeight0 = 0x010000000000000000;
                 settleWeight1 = 0;
             } else if (price >= slots[SLOT_NUM - 1]) {
                 settleIdx = uint8(SLOT_NUM - 1);
                 settleWeight0 = 0;
-                settleWeight1 = 1;
+                settleWeight1 = 0x010000000000000000;
             } else {
                 uint8 h = uint8(SLOT_NUM - 1);
                 uint8 l = 0;
@@ -218,7 +212,7 @@ contract BaseCFMMSwap {
         uint128[SLOT_NUM] calldata _out,
         uint128[SLOT_NUM] calldata _in
     ) external noReentrant onlyPoption {
-        require(block.timestamp < closeTime, "MCT");
+        require(_isInited && block.timestamp < closeTime, "MCT");
         _toSwap(_out, _in);
     }
 

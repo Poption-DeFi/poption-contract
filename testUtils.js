@@ -15,11 +15,28 @@ const TWO_F_64 = new BigFloat("18446744073709551616");
 const TWO_I_128 = BigNumber.from("340282366920938463463374607431768211456");
 const TWO_I_64 = BigNumber.from("18446744073709551616");
 
+const toDec = (x) => BF(x.toString()).div(TWO_F_64);
+const toInt = (x) => BF(x).mul(TWO_F_64).toFixed(0);
+
+const readGas = async (trx) => {
+  const receipt = await trx.wait();
+  console.log(`gas: ${receipt.gasUsed}`);
+};
+
+const estGas = async (trx) => {
+  const gas = await trx;
+  console.log(`gas: ${gas}`);
+};
+
 module.exports = {
-  BigFloat: BigFloat,
-  BF: BF,
-  TWO_I_64: TWO_I_64,
-  TWO_I_128: TWO_I_128,
-  TWO_F_64: TWO_F_64,
-  TWO_F_128: TWO_F_128,
+  BigFloat,
+  BF,
+  TWO_I_64,
+  TWO_I_128,
+  TWO_F_64,
+  TWO_F_128,
+  toDec,
+  toInt,
+  readGas,
+  estGas,
 };

@@ -8,11 +8,9 @@ const { expect } = chai;
 const chaiAsPromised = require("chai-as-promised");
 chai.use(solidity);
 chai.use(chaiAsPromised);
-const cfmm = require("../cfmm");
-const readGas = async (trx) => {
-  const receipt = await trx.wait();
-  console.log(`gas: ${receipt.gasUsed}`);
-};
+const tus = require("../testUtils");
+const readGas = tus.readGas;
+
 const slots = [
   "416821430997571584",
   "1483446462075981312",
@@ -201,7 +199,7 @@ _.mapKeys(inits, (getSwap, swapName) => {
 
     it("can add liquidity", async () => {
       const liq = (await swap.getStatus())[1];
-      const frac = cfmm.TWO_F_64.mul(0.25).toFixed(0);
+      const frac = tus.TWO_F_64.mul(0.25).toFixed(0);
       const _in = _.map(liq, (i) => i.mul(frac).div("0x10000000000000000"));
       const shareAll = await swap.liqPoolShareAll();
       readGas(
@@ -217,7 +215,7 @@ _.mapKeys(inits, (getSwap, swapName) => {
         )[1]
       );
       const share = await swap.liqPoolShare(addr2.address);
-      expect(+share).to.equal(+cfmm.BF(+shareAll).mul(0.25));
+      expect(+share).to.equal(+tus.BF(+shareAll).mul(0.25));
       expect(shareAll.add(await swap.liqPoolShare(addr2.address))).to.equal(
         await swap.liqPoolShareAll()
       );
@@ -225,7 +223,7 @@ _.mapKeys(inits, (getSwap, swapName) => {
 
     it("can add liquidity from poption", async () => {
       const liq = (await swap.getStatus())[1];
-      const frac = cfmm.TWO_F_64.mul(0.04).toFixed(0);
+      const frac = tus.TWO_F_64.mul(0.04).toFixed(0);
       const _in = _.map(liq, (i) => i.mul(frac).div("0x10000000000000000"));
       const shareAll = await swap.liqPoolShareAll();
       readGas(
@@ -241,15 +239,15 @@ _.mapKeys(inits, (getSwap, swapName) => {
         )[1]
       );
       const share = await swap.liqPoolShare(addr2.address);
-      expect(+share).to.equal(+cfmm.BF(+shareAll).mul(0.24));
-      expect(cfmm.BF(shareAll.toString()).mul(1.04).toFixed(0)).to.equal(
+      expect(+share).to.equal(+tus.BF(+shareAll).mul(0.24));
+      expect(tus.BF(shareAll.toString()).mul(1.04).toFixed(0)).to.equal(
         (await swap.liqPoolShareAll()).toString()
       );
     });
 
     it("cannot add liquidity for not enough option", async () => {
       const liq = (await swap.getStatus())[1];
-      const frac = cfmm.TWO_F_64.mul(3).toFixed(0);
+      const frac = tus.TWO_F_64.mul(3).toFixed(0);
 
       await expect(
         poption.connect(addr2).liquidIn(swap.address, frac)
@@ -259,7 +257,7 @@ _.mapKeys(inits, (getSwap, swapName) => {
     it("can remove liquidity", async () => {
       const share = await swap.liqPoolShare(addr2.address);
       const shareAll = await swap.liqPoolShareAll();
-      const shareOut = cfmm.BF(share.toString()).mul(0.7).toFixed(0);
+      const shareOut = tus.BF(share.toString()).mul(0.7).toFixed(0);
       const liq = (await swap.getStatus())[1];
       readGas(
         await expect(swap.connect(addr2).liquidOut(shareOut)).to.fulfilled
@@ -271,9 +269,9 @@ _.mapKeys(inits, (getSwap, swapName) => {
         "E1"
       ).to.eql(
         _.map(liq, (i) =>
-          cfmm
+          tus
             .BF(i.toString())
-            .sub(cfmm.BF(shareOut).div(shareAll.toString()).mul(i.toString()))
+            .sub(tus.BF(shareOut).div(shareAll.toString()).mul(i.toString()))
             .toFixed(0)
             .slice(0, -1)
         )
@@ -320,6 +318,58 @@ _.mapKeys(inits, (getSwap, swapName) => {
       ).to.rejectedWith(Error, /.*MCT.*/);
     });
 
+    it("can getWight after settle time 0", async () => {
+      await network.provider.send("evm_increaseTime", [101]);
+      await network.provider.send("evm_mine");
+      await oracle.set(BigNumber.from(slots[0]).sub(10));
+      const weight = (await swap.getStatus())[0];
+      expect(weight[0]).to.eql(tus.TWO_I_64);
+      expect(_.reduce(weight, (a, b) => +a + +b)).to.eql(
+        +tus.TWO_I_64.toString()
+      );
+    });
+
+    it("can getWight after settle time 1", async () => {
+      await oracle.set(BigNumber.from(slots[slots.length - 1]).add(10));
+      const weight = (await swap.getStatus())[0];
+      expect(weight[slots.length - 1]).to.eql(tus.TWO_I_64);
+      expect(_.reduce(weight, (a, b) => +a + +b)).to.eql(
+        +tus.TWO_I_64.toString()
+      );
+    });
+
+    it("can getWight after settle time 2", async () => {
+      await oracle.set(
+        BigNumber.from(slots[+(slots.length / 2).toFixed(0)]).add(10)
+      );
+      const weight = (await swap.getStatus())[0];
+      expect(_.reduce(weight, (a, b) => +a + +b)).to.eql(
+        +tus.TWO_I_64.toString()
+      );
+    });
+    it("can getWight after settle ", async () => {
+      await poption.settle();
+      const weight = (await swap.getStatus())[0];
+      expect(_.reduce(weight, (a, b) => +a + +b)).to.eql(
+        +tus.TWO_I_64.toString()
+      );
+    });
+
+    it("can remove liquidity after close time", async () => {
+      const share = await swap.liqPoolShare(addr1.address);
+      const shareAll = await swap.liqPoolShareAll();
+      const shareOut = share.div(2).toString();
+      readGas(
+        await expect(swap.connect(addr1).liquidOut(shareOut)).to.fulfilled
+      );
+      await expect(await poption.balanceOf(swap.address)).to.eql(
+        (
+          await swap.getStatus()
+        )[1]
+      );
+      expect(+(await swap.liqPoolShareAll())).to.gte(+shareAll.sub(shareOut));
+    });
+
     it("cannot destory before destory time", async () => {
       await expect(swap.connect(addr1).destroy()).to.rejectedWith(
         Error,
@@ -336,7 +386,7 @@ _.mapKeys(inits, (getSwap, swapName) => {
       );
     });
 
-    it("can destory by not owner", async () => {
+    it("can destory by only owner", async () => {
       await network.provider.send("evm_increaseTime", [301]);
       await network.provider.send("evm_mine");
 
@@ -374,7 +424,7 @@ describe(`test BlackScholesSwap 2`, () => {
       BigNumber.from("0x10200000000000000"),
       BigNumber.from("0x28f5c28f5c29000"),
       BigNumber.from("416757209401000000"),
-      true
+      false
     );
     await expect(swap.deployed()).to.fulfilled;
 

@@ -7,18 +7,11 @@ const { _ } = require("lodash");
 const { parseEther, solidityKeccak256 } = utils;
 const { expect } = chai;
 const chaiAsPromised = require("chai-as-promised");
+
+const { estGas, readGas } = require("../testUtils");
+
 chai.use(solidity);
 chai.use(chaiAsPromised);
-const readGas = async (trx) => {
-  const receipt = await trx.wait();
-  console.log(`gas: ${receipt.gasUsed}`);
-};
-
-const estGas = async (trx) => {
-  const gas = await trx;
-  console.log(`gas: ${gas}`);
-};
-
 describe("test oracle", () => {
   let oracle;
   before(async () => {
@@ -47,13 +40,22 @@ describe("test swap", () => {
     await swap.deployed();
   });
 
-  it("should be initialized as 1", async () => {
-    await expect(swap.toSwap()).be.rejected;
+  it("always reject toswap", async () => {
+    await expect(swap.toSwap(_.range(16), _.range(16))).be.rejected;
   });
 
-  it("x should be set and read", async () => {
+  it("always reject toLiqudIn", async () => {
+    await expect(swap.toLiquidIn(20)).be.rejected;
+  });
+
+  it("always accept toswap", async () => {
     await swap.set(true);
     await expect(swap.toSwap(_.range(16), _.range(16))).to.fulfilled;
+  });
+
+  it("always accept toLiquidIn", async () => {
+    await swap.set(true);
+    await expect(swap.toLiquidIn(20)).to.fulfilled;
   });
 });
 
@@ -67,8 +69,8 @@ describe("test poption", () => {
     const Erc20 = await ethers.getContractFactory("TestERC20");
     erc20 = await Erc20.deploy("test", "TST", 18);
     await Promise.all([oracle.deployed(), erc20.deployed()]);
-    await erc20.deposit({ value: parseEther("2") });
-    await erc20.connect(addr2).deposit({ value: parseEther("2") });
+    await erc20.mint(parseEther("2"));
+    await erc20.connect(addr2).mint(parseEther("2"));
     const Swap = await ethers.getContractFactory("TestSwap");
     swap = await Swap.deploy();
     await swap.deployed();

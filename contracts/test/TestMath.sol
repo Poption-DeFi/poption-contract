@@ -83,6 +83,16 @@ contract Test64x64 {
         return (r, startGas - gasleft());
     }
 
+    function testCauchyCdf(int128 x)
+        public
+        view
+        returns (uint128 r, uint256 gas)
+    {
+        gas = gasleft();
+        r = x.cauchyCdf();
+        gas = gas - gasleft();
+    }
+
     function testNormCdf(int128 x)
         public
         view

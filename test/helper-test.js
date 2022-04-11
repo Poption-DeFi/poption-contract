@@ -8,11 +8,7 @@ const { expect } = chai;
 const chaiAsPromised = require("chai-as-promised");
 chai.use(solidity);
 chai.use(chaiAsPromised);
-const cfmm = require("../cfmm");
-const readGas = async (trx) => {
-  const receipt = await trx.wait();
-  console.log(`gas: ${receipt.gasUsed}`);
-};
+
 const slots = [
   "416821430997571584",
   "1483446462075981312",

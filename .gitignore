@@ -9,3 +9,5 @@ cache
 artifacts
 /node.log
 /arguments.js
+/contracts/test/TestHelper.sol
+/node.out

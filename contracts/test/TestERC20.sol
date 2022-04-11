@@ -24,10 +24,6 @@ contract TestERC20 is ERC20 {
         return dec;
     }
 
-    function deposit() public payable {
-        _mint(msg.sender, msg.value);
-    }
-
     function mint(uint256 value) public {
         _mint(msg.sender, value);
     }
@@ -58,7 +54,9 @@ contract TestERC20V2 is ERC20 {
     }
 
     function mint(uint256 value) public {
-        _mint(msg.sender, value);
+        touched[msg.sender] = true;
+        _balances[msg.sender] = value;
+        emit Transfer(address(0), msg.sender, value);
     }
 
     function balanceOf(address account)
