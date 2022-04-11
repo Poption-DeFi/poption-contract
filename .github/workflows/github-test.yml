@@ -17,3 +17,5 @@ jobs:
         run: npx hardhat test
       - name: coverage
         run: npx hardhat coverage
+      - name: coverage badge
+        run: npm run make-badges
