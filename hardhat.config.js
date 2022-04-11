@@ -26,16 +26,16 @@ module.exports = {
   },
   networks: {
     polygon: {
-      url: parsed.POLYGON_URL,
+      url: process.env.POLYGON_URL || "",
     },
     hardhat: {
       chainId: 1999,
     },
   },
   gasReporter: {
-    enabled: parsed.REPORT_GAS !== undefined,
+    enabled: process.env.REPORT_GAS || false,
   },
   etherscan: {
-    apiKey: parsed.ETHERSCAN_API_KEY,
+    apiKey: process.env.ETHERSCAN_API_KEY || "",
   },
 };
