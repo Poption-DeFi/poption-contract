@@ -11,4 +11,4 @@ jobs:
       - run: npm install
       - run: npx hardhat compile
       - run: npx hardhat test
-      - run: npx hardhat converage
+      - run: npx hardhat coverage
