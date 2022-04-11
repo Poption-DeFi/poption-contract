@@ -64,7 +64,7 @@ library Math64x64 {
     }
 
     function msb(int128 x) internal pure returns (int128 r) {
-        require(x >= 0);
+        require(x >= 0, "No Neg");
         unchecked {
             return msb(uint128(x));
         }
@@ -103,7 +103,7 @@ library Math64x64 {
     }
 
     function ln(uint128 rx) internal pure returns (int128) {
-        require(rx > 0);
+        require(rx > 0, "Be Pos");
         unchecked {
             int256 r = msb(rx);
 
@@ -171,28 +171,7 @@ library Math64x64 {
         }
     }
 
-    function invSqrt(uint128 x) internal pure returns (uint128 r) {
-        require(x >= 1);
-        unchecked {
-            int128 msbx = msb(x);
-            assembly {
-                let rx := div(
-                    0x1000000000000000000000000000000000000000000000000,
-                    x
-                )
-                r := shr(sub(96, sar(1, msbx)), rx)
-                r := shr(1, add(div(rx, r), r))
-                r := shr(1, add(div(rx, r), r))
-                r := shr(1, add(div(rx, r), r))
-                r := shr(1, add(div(rx, r), r))
-                r := shr(1, add(div(rx, r), r))
-                r := shr(1, add(div(rx, r), r))
-            }
-        }
-    }
-
     function sqrt(uint128 x) internal pure returns (uint128 r) {
-        require(x >= 1);
         unchecked {
             int128 msbx = msb(x);
             assembly {
@@ -283,7 +262,7 @@ library Math64x64 {
     }
 
     function exp(uint128 x) internal pure returns (uint128 r) {
-        require(x < 0x2bab13e5fca20ef146);
+        require(x < 0x2bab13e5fca20ef146, "Overflow");
         if (x == 0) {
             return 0x10000000000000000;
         }

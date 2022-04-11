@@ -1,5 +1,7 @@
 require("@babel/register");
-const { parsed } = require("dotenv").config();
+const { parsed } = require("dotenv").config({
+  path: __dirname.concat("/.env"),
+});
 
 require("@nomiclabs/hardhat-etherscan");
 require("@nomiclabs/hardhat-waffle");

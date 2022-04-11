@@ -18,7 +18,7 @@ contract TestSwap {
         value = _value;
     }
 
-    function toLiquidIn(uint128 frac) external {
+    function toLiquidIn(uint128) external {
         require(value, "RJ");
     }
 

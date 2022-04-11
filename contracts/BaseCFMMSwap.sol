@@ -13,7 +13,7 @@ import "./interface/IOracle.sol";
 contract BaseCFMMSwap {
     using Math64x64 for uint128;
     using Math64x64 for int128;
-    uint256 constant SLOT_NUM = 16;
+    uint256 public constant SLOT_NUM = 16;
 
     uint128[SLOT_NUM] public slots;
     uint128[SLOT_NUM] public liqPool;
@@ -200,15 +200,15 @@ contract BaseCFMMSwap {
         uint128[SLOT_NUM] calldata _in
     ) internal {
         uint128[SLOT_NUM] memory weight = getWeight();
-        int256 const_now = tradeFunction(liqPool, weight);
-        uint128[SLOT_NUM] memory lp_to;
+        int256 constNow = tradeFunction(liqPool, weight);
+        uint128[SLOT_NUM] memory lpTo;
         for (uint256 i = 0; i < SLOT_NUM; i++) {
             uint128 outi = _out[i].mul(feeRate);
             require(liqPool[i] > outi, "PLQ");
-            lp_to[i] = liqPool[i] + _in[i].div(feeRate) - outi;
+            lpTo[i] = liqPool[i] + _in[i].div(feeRate) - outi;
         }
-        int256 const_to = tradeFunction(lp_to, weight);
-        require(const_to >= const_now, "PMC");
+        int256 constTo = tradeFunction(lpTo, weight);
+        require(constTo >= constNow, "PMC");
         for (uint256 i = 0; i < SLOT_NUM; i++) {
             liqPool[i] = liqPool[i] + _in[i] - _out[i];
         }

@@ -36,18 +36,15 @@ describe("TestERC20", () => {
     });
 
     it("should able to withdraw", async () => {
-      const prevBalance = await addr1.getBalance();
-      const tx = await mytoken.connect(addr1).withdraw(parseEther("0.05"));
+      const prevBalance = await mytoken.balanceOf(addr1.address);
+      const tx = await mytoken.connect(addr1).burn(parseEther("0.05"));
       const receipt = await tx.wait();
       console.log(`GasUsed: ${receipt.gasUsed}`);
 
       // Obtain gasPrice from the transaction
       console.log(`GasPrice: ${tx.gasPrice}`);
-      expect(await addr1.getBalance().valueOf()).to.equal(
-        prevBalance
-          .add(parseEther("0.05"))
-          .sub(receipt.gasUsed.mul(tx.gasPrice))
-          .valueOf()
+      expect(await mytoken.balanceOf(addr1.address).valueOf()).to.equal(
+        prevBalance.sub(parseEther("0.05")).valueOf()
       );
     });
 

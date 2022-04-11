@@ -13,7 +13,7 @@ import "./Math.sol";
 
 contract Poption {
     using Math64x64 for uint128;
-    uint256 constant SLOT_NUM = 16;
+    uint256 public constant SLOT_NUM = 16;
 
     uint128[SLOT_NUM] public slots;
     mapping(address => uint128[SLOT_NUM]) public options;

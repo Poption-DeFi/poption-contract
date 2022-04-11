@@ -12,7 +12,7 @@ contract Test64x64 {
     using Math64x64 for uint128;
     using Math64x64 for int128;
 
-    function test_mul(uint128 x, uint128 y)
+    function testMul(uint128 x, uint128 y)
         public
         view
         returns (uint128, uint256)
@@ -23,7 +23,7 @@ contract Test64x64 {
         return (r, startGas - gasleft());
     }
 
-    function test_signed_mul(int128 x, int128 y)
+    function testSignedMul(int128 x, int128 y)
         public
         view
         returns (int128, uint256)
@@ -34,7 +34,7 @@ contract Test64x64 {
         return (r, startGas - gasleft());
     }
 
-    function test_div(uint128 x, uint128 y)
+    function testDiv(uint128 x, uint128 y)
         public
         view
         returns (uint128, uint256)
@@ -45,7 +45,7 @@ contract Test64x64 {
         return (r, startGas - gasleft());
     }
 
-    function test_signed_div(int128 x, int128 y)
+    function testSignedDiv(int128 x, int128 y)
         public
         view
         returns (int128, uint256)
@@ -56,40 +56,34 @@ contract Test64x64 {
         return (r, startGas - gasleft());
     }
 
-    function test_msb(uint128 x) public view returns (int128, uint256) {
+    function testMsb(uint128 x) public view returns (int128, uint256) {
         int128 r;
         uint256 startGas = gasleft();
         r = x.msb();
         return (r, startGas - gasleft());
     }
 
-    function test_signed_msb(int128 x) public view returns (int128, uint256) {
+    function testSignedMsb(int128 x) public view returns (int128, uint256) {
         int128 r;
         uint256 startGas = gasleft();
         r = x.msb();
         return (r, startGas - gasleft());
     }
 
-    function test_ln(uint128 x) public view returns (int128, uint256) {
+    function testLn(uint128 x) public view returns (int128, uint256) {
         int128 r = 0;
         uint256 startGas = gasleft();
         r = x.ln();
         return (r, startGas - gasleft());
     }
 
-    function test_inv_sqrt(uint128 x) public view returns (uint128 r, uint256) {
-        uint256 startGas = gasleft();
-        r = x.invSqrt();
-        return (r, startGas - gasleft());
-    }
-
-    function test_sqrt(uint128 x) public view returns (uint128 r, uint256) {
+    function testSqrt(uint128 x) public view returns (uint128 r, uint256) {
         uint256 startGas = gasleft();
         r = x.sqrt();
         return (r, startGas - gasleft());
     }
 
-    function test_normCdf(int128 x)
+    function testNormCdf(int128 x)
         public
         view
         returns (uint128 r, uint256 gas)
@@ -99,7 +93,7 @@ contract Test64x64 {
         gas = gas - gasleft();
     }
 
-    function test_exp(uint128 x) public view returns (uint128 r, uint256 gas) {
+    function testExp(uint128 x) public view returns (uint128 r, uint256 gas) {
         gas = gasleft();
         r = x.exp();
         gas = gas - gasleft();

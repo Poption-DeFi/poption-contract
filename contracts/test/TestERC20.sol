@@ -32,13 +32,8 @@ contract TestERC20 is ERC20 {
         _mint(msg.sender, value);
     }
 
-    function withdraw(uint256 amount) public {
+    function burn(uint256 amount) public {
         _burn(msg.sender, amount);
-        (bool success, bytes memory data) = msg.sender.call{value: amount}("");
-        require(
-            success && (data.length == 0 || abi.decode(data, (bool))),
-            "Hydivergence: TRANSFER_FAILED_0"
-        );
     }
 }
 
@@ -85,8 +80,8 @@ contract TestERC20V2 is ERC20 {
         address to,
         uint256 amount
     ) internal virtual override {
-        require(from != address(0), "ERC20: transfer from the zero address");
-        require(to != address(0), "ERC20: transfer to the zero address");
+        require(from != address(0), "TF F 0 Addr");
+        require(to != address(0), "TF T 0 Addr");
 
         _beforeTokenTransfer(from, to, amount);
         if (from != address(0) && !touched[from]) {
@@ -99,10 +94,7 @@ contract TestERC20V2 is ERC20 {
         }
 
         uint256 fromBalance = _balances[from];
-        require(
-            fromBalance >= amount,
-            "ERC20: transfer amount exceeds balance"
-        );
+        require(fromBalance >= amount, "TF OVER BALANCE");
         unchecked {
             _balances[from] = fromBalance - amount;
         }
