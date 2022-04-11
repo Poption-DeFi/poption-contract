@@ -83,7 +83,7 @@ const inits = {
       poption.address,
       +settleTime - 100,
       +settleTime + 100,
-      BigNumber.from("0x10200000000000000"),
+      BigNumber.from("0x10100000000000000"),
       BigNumber.from("0x28f5c28f5c29000"),
       BigNumber.from("416757209401000000"),
       true
@@ -114,6 +114,12 @@ _.mapKeys(inits, (getSwap, swapName) => {
         await poption.balanceOf(swap.address)
       );
       expect(await swap.liqPoolShareAll()).to.eql(parseEther("1.9"));
+    });
+
+    it("can setFeeRate", async () => {
+      await expect(
+        swap.connect(addr1).setFeeRate(BigNumber.from("0x10200000000000000"))
+      ).to.be.fulfilled;
     });
 
     xit("can swap", async () => {

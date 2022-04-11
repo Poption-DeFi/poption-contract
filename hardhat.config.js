@@ -16,7 +16,7 @@ require("solidity-coverage");
  */
 module.exports = {
   solidity: {
-    version: "0.8.4",
+    version: "0.8.12",
     settings: {
       optimizer: {
         enabled: true,
@@ -33,8 +33,7 @@ module.exports = {
     },
   },
   gasReporter: {
-    enabled: process.env.REPORT_GAS !== undefined,
-    currency: "CNY",
+    enabled: parsed.REPORT_GAS !== undefined,
   },
   etherscan: {
     apiKey: parsed.ETHERSCAN_API_KEY,
