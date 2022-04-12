@@ -43,6 +43,6 @@
     "make-badges": "istanbul-badges-readme",
     "test": "npx hardhat test",
     "coverage": "npx hardhat coverage",
-    "compile": "npx hardhat compile"
+    "build": "npx hardhat compile"
   }
 }
