@@ -125,4 +125,61 @@ describe("test helper", () => {
     expect(isAsset).to.be.true;
     expect(settleTime).to.eql(await poption.settleTime());
   });
+
+  it("can help deploy swap and poption", async () => {
+    const [oracle, erc1, erc2] = await prepareEnv();
+    const owner = (await ethers.getSigners())[0];
+    const blockId = await ethers.provider.getBlockNumber();
+    const time = await ethers.provider
+      .getBlock(blockId)
+      .then(({ timestamp }) => timestamp);
+
+    const Helper = await ethers.getContractFactory("Helper");
+    const helper = await Helper.deploy();
+    await helper.deployed();
+    const amount = 10000000;
+    const poolInit = _.map(slots, () => amount);
+    poolInit[0] = Math.round(amount * 0.7);
+    poolInit[poolInit.length - 1] = Math.round(amount * 0.7);
+    await erc1.mint(amount);
+    await erc1.approve(helper.address, amount);
+    const tx = await helper.deploy(
+      erc1.address,
+      oracle.address,
+      time + 100,
+      time + 200,
+      time + 300,
+      slots,
+      BigNumber.from("0x10200000000000000"),
+      BigNumber.from("0x28f5c28f5c29000"),
+      BigNumber.from("416757209401000000"),
+      true,
+      amount,
+      poolInit
+    );
+    const rx = await tx.wait();
+
+    const conAddrs = _.filter(
+      _.map(
+        _.filter(rx.logs, (i) => i.address === helper.address),
+        (i) => helper.interface.parseLog(i)
+      ),
+      (i) => i.name === "Create"
+    )[0].args;
+    const poption = (await ethers.getContractFactory("Poption")).attach(
+      conAddrs.poption
+    );
+    const swap = (await ethers.getContractFactory("BlackScholesSwap")).attach(
+      conAddrs.swap
+    );
+
+    expect(await swap.poption()).be.eql(poption.address);
+    expect(await swap.owner()).be.eql(owner.address);
+    expect(_.map(await poption.balanceOf(swap.address), (i) => +i)).be.eql(
+      poolInit
+    );
+    expect(
+      _.map(await poption.balanceOf(owner.address), (i) => amount - +i)
+    ).be.eql(poolInit);
+  });
 });

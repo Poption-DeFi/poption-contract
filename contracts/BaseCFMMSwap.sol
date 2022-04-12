@@ -116,10 +116,10 @@ contract BaseCFMMSwap {
         liqPoolShareAll += share;
     }
 
-    function init() external virtual onlyOwner noReentrant {
+    function init() external virtual noReentrant {
         require(!_isInited, "INITED");
-        _init();
         _isInited = true;
+        _init();
     }
 
     function getStatus()

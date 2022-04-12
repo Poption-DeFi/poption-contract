@@ -41,13 +41,13 @@ contract BlackScholesSwap is BaseCFMMSwap {
         isCash = _isCash;
     }
 
-    function init() external override onlyOwner noReentrant {
+    function init() external override noReentrant {
         require(!_isInited, "INITED");
+        _isInited = true;
         super._init();
         for (uint256 i = 0; i < SLOT_NUM; i++) {
             lnSlots[i] = slots[i].ln();
         }
-        _isInited = true;
     }
 
     function getWeight()
