@@ -24,6 +24,7 @@
     "hardhat": "^2.7.0",
     "hardhat-dependency-compiler": "^1.1.2",
     "hardhat-gas-reporter": "^1.0.4",
+    "istanbul-badges-readme": "^1.8.1",
     "prettier": "^2.5.0",
     "prettier-plugin-solidity": "^1.0.0-beta.13",
     "solhint": "^3.3.6",
@@ -37,5 +38,11 @@
     "decimal.js": "^10.3.1",
     "ethers": "^5.5.1",
     "lodash": "^4.17.21"
+  },
+  "scripts": {
+    "make-badges": "istanbul-badges-readme",
+    "test": "npx hardhat test",
+    "coverage": "npx hardhat coverage",
+    "build": "npx hardhat compile"
   }
 }
