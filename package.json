@@ -40,6 +40,9 @@
     "lodash": "^4.17.21"
   },
   "scripts": {
-    "make-badges": "istanbul-badges-readme"
+    "make-badges": "istanbul-badges-readme",
+    "test": "npx hardhat test",
+    "coverage": "npx hardhat coverage",
+    "compile": "npx hardhat compile"
   }
 }
