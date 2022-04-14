@@ -111,7 +111,7 @@ _.mapKeys(inits, (getSwap, swapName) => {
       await expect(swap.connect(addr1).init()).to.fulfilled;
       await expect(swap.connect(addr1).init()).to.rejectedWith(Error, "INITED");
       expect((await swap.getStatus())[1]).to.eql(
-        await poption.balanceOf(swap.address)
+        await poption.balanceOfAll(swap.address)
       );
       expect(await swap.liqPoolShareAll()).to.eql(parseEther("1.9"));
     });
@@ -137,7 +137,7 @@ _.mapKeys(inits, (getSwap, swapName) => {
           .fulfilled
       );
       expect((await swap.getStatus())[1]).to.eql(
-        await poption.balanceOf(swap.address)
+        await poption.balanceOfAll(swap.address)
       );
       await expect(
         swap.connect(addr1).swap(_out, _in, seed, sign)
@@ -153,7 +153,7 @@ _.mapKeys(inits, (getSwap, swapName) => {
           .fulfilled
       );
       expect((await swap.getStatus())[1]).to.eql(
-        await poption.balanceOf(swap.address)
+        await poption.balanceOfAll(swap.address)
       );
     });
 
@@ -169,7 +169,7 @@ _.mapKeys(inits, (getSwap, swapName) => {
         ).to.fulfilled
       );
       expect((await swap.getStatus())[1]).to.eql(
-        await poption.balanceOf(swap.address)
+        await poption.balanceOfAll(swap.address)
       );
     });
 
@@ -183,7 +183,7 @@ _.mapKeys(inits, (getSwap, swapName) => {
         ).to.fulfilled
       );
       expect((await swap.getStatus())[1]).to.eql(
-        await poption.balanceOf(swap.address)
+        await poption.balanceOfAll(swap.address)
       );
     });
     it("cannot swap because of reject by trade function", async () => {
@@ -212,10 +212,10 @@ _.mapKeys(inits, (getSwap, swapName) => {
         await expect(poption.connect(addr2).liquidIn(swap.address, frac)).to
           .fulfilled
       );
-      await expect(await poption.balanceOf(swap.address)).to.eql(
+      await expect(await poption.balanceOfAll(swap.address)).to.eql(
         _.map(_.zip(liq, _in), ([i, j]) => i.add(j))
       );
-      await expect(await poption.balanceOf(swap.address)).to.eql(
+      await expect(await poption.balanceOfAll(swap.address)).to.eql(
         (
           await swap.getStatus()
         )[1]
@@ -236,10 +236,10 @@ _.mapKeys(inits, (getSwap, swapName) => {
         await expect(poption.connect(addr2).liquidIn(swap.address, frac)).to
           .fulfilled
       );
-      await expect(await poption.balanceOf(swap.address)).to.eql(
+      await expect(await poption.balanceOfAll(swap.address)).to.eql(
         _.map(_.zip(liq, _in), ([i, j]) => i.add(j))
       );
-      await expect(await poption.balanceOf(swap.address)).to.eql(
+      await expect(await poption.balanceOfAll(swap.address)).to.eql(
         (
           await swap.getStatus()
         )[1]
@@ -269,7 +269,7 @@ _.mapKeys(inits, (getSwap, swapName) => {
         await expect(swap.connect(addr2).liquidOut(shareOut)).to.fulfilled
       );
       await expect(
-        _.map(await poption.balanceOf(swap.address), (i) =>
+        _.map(await poption.balanceOfAll(swap.address), (i) =>
           i.toString().slice(0, -1)
         ),
         "E1"
@@ -282,7 +282,7 @@ _.mapKeys(inits, (getSwap, swapName) => {
             .slice(0, -1)
         )
       );
-      await expect(await poption.balanceOf(swap.address)).to.eql(
+      await expect(await poption.balanceOfAll(swap.address)).to.eql(
         (
           await swap.getStatus()
         )[1]
@@ -303,7 +303,7 @@ _.mapKeys(inits, (getSwap, swapName) => {
       readGas(
         await expect(swap.connect(addr2).liquidOut(shareOut)).to.fulfilled
       );
-      await expect(await poption.balanceOf(swap.address)).to.eql(
+      await expect(await poption.balanceOfAll(swap.address)).to.eql(
         (
           await swap.getStatus()
         )[1]
@@ -368,7 +368,7 @@ _.mapKeys(inits, (getSwap, swapName) => {
       readGas(
         await expect(swap.connect(addr1).liquidOut(shareOut)).to.fulfilled
       );
-      await expect(await poption.balanceOf(swap.address)).to.eql(
+      await expect(await poption.balanceOfAll(swap.address)).to.eql(
         (
           await swap.getStatus()
         )[1]
@@ -397,12 +397,12 @@ _.mapKeys(inits, (getSwap, swapName) => {
       await network.provider.send("evm_mine");
 
       const [balBefore, balSwap] = await Promise.all([
-        poption.balanceOf(addr1.address),
-        poption.balanceOf(swap.address),
+        poption.balanceOfAll(addr1.address),
+        poption.balanceOfAll(swap.address),
       ]);
       await expect(swap.connect(addr1).destroy()).to.fulfilled;
       console.log("2");
-      const balAfter = await poption.balanceOf(addr1.address);
+      const balAfter = await poption.balanceOfAll(addr1.address);
       expect(_.map(balAfter, (i) => i.toString())).to.eql(
         _.map(_.zip(balBefore, balSwap), ([i, j]) => i.add(j).toString())
       );
@@ -440,7 +440,7 @@ describe(`test BlackScholesSwap 2`, () => {
     );
     await expect(swap.connect(addr1).init()).to.fulfilled;
     const status = await swap.getStatus();
-    expect(status[1]).to.eql(await poption.balanceOf(swap.address));
+    expect(status[1]).to.eql(await poption.balanceOfAll(swap.address));
     expect(await swap.liqPoolShareAll()).to.eql(parseEther("1.9"));
   });
 

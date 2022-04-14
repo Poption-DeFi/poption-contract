@@ -7,17 +7,39 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import "./interface/IOracle.sol";
 import "./interface/ISwap.sol";
 import "./Math.sol";
 
-contract Poption {
+contract Poption is IERC1155 {
     using Math64x64 for uint128;
     uint256 public constant SLOT_NUM = 16;
+    uint256[] public allIds = [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+    ];
 
     uint128[SLOT_NUM] public slots;
     mapping(address => uint128[SLOT_NUM]) public options;
     mapping(bytes32 => bool) public usedHash;
+    mapping(address => mapping(address => bool)) private allowance;
+    uint128 public totalLockedAsset;
 
     IOracle public immutable oracle;
     uint256 public immutable settleTime;
@@ -32,8 +54,6 @@ contract Poption {
     uint8 public settleIdx;
     uint128 public settleWeight0;
     uint128 public settleWeight1;
-
-    event Transfer(address indexed sender, address indexed recipient);
 
     constructor(
         address _token,
@@ -101,7 +121,7 @@ contract Poption {
         }
     }
 
-    function balanceOf(address addr)
+    function balanceOfAll(address addr)
         external
         view
         returns (uint128[SLOT_NUM] memory)
@@ -145,13 +165,19 @@ contract Poption {
         address _to,
         uint128[SLOT_NUM] memory _option
     ) private {
+        require(_to != address(0), "T0Addr");
+        uint256[] memory value = new uint256[](SLOT_NUM);
         unchecked {
             for (uint256 i = 0; i < SLOT_NUM; i++) {
-                require(_option[i] <= options[_from][i], "NEO");
-                options[_to][i] += _option[i];
-                options[_from][i] -= _option[i];
+                uint128 amount = _option[i];
+                if (amount > 0) {
+                    require(amount <= options[_from][i], "NEO");
+                    options[_to][i] += amount;
+                    options[_from][i] -= amount;
+                    value[i] = amount;
+                }
             }
-            emit Transfer(_from, _to);
+            emit TransferBatch(msg.sender, _from, _to, allIds, value);
         }
     }
 
@@ -164,21 +190,26 @@ contract Poption {
 
     function mint(uint128 _assert) public noReentrant {
         _safeTransferFrom(token, msg.sender, address(this), _assert);
+        uint256[] memory value = new uint256[](SLOT_NUM);
         for (uint256 i = 0; i < SLOT_NUM; i++) {
             options[msg.sender][i] += _assert;
         }
-        emit Transfer(address(0), msg.sender);
+        totalLockedAsset += _assert;
+        emit TransferBatch(msg.sender, address(0), msg.sender, allIds, value);
     }
 
     function burn(uint128 _assert) public noReentrant {
+        uint256[] memory value = new uint256[](SLOT_NUM);
         unchecked {
             for (uint256 i = 0; i < SLOT_NUM; i++) {
                 require(_assert <= options[msg.sender][i], "NEO");
                 options[msg.sender][i] -= _assert;
+                value[i] = _assert;
             }
         }
         _safeTransfer(token, address(msg.sender), uint256(_assert));
-        emit Transfer(msg.sender, address(0));
+        totalLockedAsset -= _assert;
+        emit TransferBatch(msg.sender, msg.sender, address(0), allIds, value);
     }
 
     function outSwap(
@@ -227,8 +258,184 @@ contract Poption {
         ) +
             options[msg.sender][settleIdx].mul(settleWeight1) -
             tail;
+        uint256[] memory value = new uint256[](SLOT_NUM);
+        value[settleIdx - 1] = options[msg.sender][settleIdx - 1];
+        value[settleIdx] = options[msg.sender][settleIdx];
+
         options[msg.sender][settleIdx - 1] = 0;
         options[msg.sender][settleIdx] = 0;
         _safeTransfer(token, address(msg.sender), _assert);
+        totalLockedAsset -= _assert;
+        emit TransferBatch(msg.sender, msg.sender, address(0), allIds, value);
+    }
+
+    /** ERC1155 interface */
+
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(IERC165)
+        returns (bool)
+    {
+        return interfaceId == type(IERC1155).interfaceId;
+    }
+
+    function balanceOf(address addr, uint256 i)
+        external
+        view
+        returns (uint256)
+    {
+        return options[addr][i];
+    }
+
+    function balanceOfBatch(
+        address[] calldata _accounts,
+        uint256[] calldata _ids
+    ) external view returns (uint256[] memory) {
+        require(_accounts.length == _ids.length, "ERC1155: length mismatch");
+
+        uint256[] memory batchBalances = new uint256[](_accounts.length);
+
+        for (uint256 i = 0; i < _accounts.length; ++i) {
+            batchBalances[i] = options[_accounts[i]][_ids[i]];
+        }
+
+        return batchBalances;
+    }
+
+    function setApprovalForAll(address operator, bool approved) external {
+        allowance[msg.sender][operator] = approved;
+        emit ApprovalForAll(msg.sender, operator, approved);
+    }
+
+    /**
+     * @dev See {IERC1155-isApprovedForAll}.
+     */
+    function isApprovedForAll(address account, address operator)
+        public
+        view
+        returns (bool)
+    {
+        return allowance[account][operator];
+    }
+
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        uint256 amount,
+        bytes memory data
+    ) external noReentrant {
+        require(
+            from == msg.sender || isApprovedForAll(from, msg.sender),
+            "NO APPROVE"
+        );
+        require(amount < Math64x64.ONEONE && id < SLOT_NUM, "OVERFLOW");
+        require(amount <= options[from][id], "NEO");
+        options[to][id] += uint128(amount);
+        unchecked {
+            options[from][id] -= uint128(amount);
+        }
+        emit TransferSingle(msg.sender, from, to, id, amount);
+        _doSafeTransferAcceptanceCheck(msg.sender, from, to, id, amount, data);
+    }
+
+    /**
+     * @dev See {IERC1155-safeBatchTransferFrom}.
+     */
+    function safeBatchTransferFrom(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data
+    ) external noReentrant {
+        require(
+            from == msg.sender || isApprovedForAll(from, msg.sender),
+            "NO APPROVE"
+        );
+        require(ids.length == amounts.length, "LEN MM");
+        for (uint256 i = 0; i < ids.length; ++i) {
+            uint256 id = ids[i];
+            uint256 amount = amounts[i];
+
+            require(amount < Math64x64.ONEONE && id < SLOT_NUM, "OVERFLOW");
+            require(amount <= options[from][id], "NEO");
+            options[to][id] += uint128(amount);
+            unchecked {
+                options[from][id] -= uint128(amount);
+            }
+        }
+        emit TransferBatch(msg.sender, from, to, ids, amounts);
+        _doSafeBatchTransferAcceptanceCheck(
+            msg.sender,
+            from,
+            to,
+            ids,
+            amounts,
+            data
+        );
+    }
+
+    // Below Code Adapted From openzeppelin-contracts/contracts/token/ERC1155/ERC1155.sol
+    function _doSafeTransferAcceptanceCheck(
+        address operator,
+        address from,
+        address to,
+        uint256 id,
+        uint256 amount,
+        bytes memory data
+    ) private {
+        if (to.code.length > 0) {
+            try
+                IERC1155Receiver(to).onERC1155Received(
+                    operator,
+                    from,
+                    id,
+                    amount,
+                    data
+                )
+            returns (bytes4 response) {
+                if (response != IERC1155Receiver.onERC1155Received.selector) {
+                    revert("ERC1155: ERC1155Receiver rejected tokens");
+                }
+            } catch Error(string memory reason) {
+                revert(reason);
+            } catch {
+                revert("ERC1155: transfer to non ERC1155Receiver implementer");
+            }
+        }
+    }
+
+    function _doSafeBatchTransferAcceptanceCheck(
+        address operator,
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data
+    ) private {
+        if (to.code.length > 0) {
+            try
+                IERC1155Receiver(to).onERC1155BatchReceived(
+                    operator,
+                    from,
+                    ids,
+                    amounts,
+                    data
+                )
+            returns (bytes4 response) {
+                if (
+                    response != IERC1155Receiver.onERC1155BatchReceived.selector
+                ) {
+                    revert("ERC1155: ERC1155Receiver rejected tokens");
+                }
+            } catch Error(string memory reason) {
+                revert(reason);
+            } catch {
+                revert("ERC1155: transfer to non ERC1155Receiver implementer");
+            }
+        }
     }
 }

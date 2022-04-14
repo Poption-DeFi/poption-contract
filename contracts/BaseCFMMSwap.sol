@@ -103,7 +103,7 @@ contract BaseCFMMSwap {
     }
 
     function _init() internal {
-        uint128[SLOT_NUM] memory _option = poption.balanceOf(address(this));
+        uint128[SLOT_NUM] memory _option = poption.balanceOfAll(address(this));
         uint128 share;
         for (uint256 i; i < SLOT_NUM; i++) {
             require(_option[i] > 100, "TL");
@@ -218,7 +218,7 @@ contract BaseCFMMSwap {
 
     function destroy() public onlyOwner noReentrant {
         require(block.timestamp > destroyTime, "NDT");
-        uint128[SLOT_NUM] memory rest = poption.balanceOf(address(this));
+        uint128[SLOT_NUM] memory rest = poption.balanceOfAll(address(this));
         poption.transfer(owner, rest);
         selfdestruct(payable(owner));
     }

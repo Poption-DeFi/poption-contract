@@ -76,21 +76,6 @@ const deployPoption = async (oracle, erc20) => {
   return poption;
 };
 
-const getSwap = async (addr1, poption) => {
-  const Swap = await ethers.getContractFactory("BlackScholesSwap");
-  const settleTime = await poption.settleTime();
-  return await Swap.deploy(
-    addr1.address,
-    poption.address,
-    +settleTime - 100,
-    +settleTime + 100,
-    BigNumber.from("0x10200000000000000"),
-    BigNumber.from("0x28f5c28f5c29000"),
-    BigNumber.from("416757209401000000"),
-    true
-  );
-};
-
 describe("test helper", () => {
   before(async () => {});
 
@@ -99,7 +84,7 @@ describe("test helper", () => {
     const poption = await deployPoption(oracle, erc2);
 
     const Helper = await ethers.getContractFactory("Helper");
-    const helper = await Helper.deploy();
+    const helper = await Helper.deploy(oracle.address);
     await helper.deployed();
     const [token0, token1, isAsset, settleTime] = await helper.hiPoption(
       poption.address
@@ -115,7 +100,7 @@ describe("test helper", () => {
     const poption = await deployPoption(oracle, erc1);
 
     const Helper = await ethers.getContractFactory("Helper");
-    const helper = await Helper.deploy();
+    const helper = await Helper.deploy(oracle.address);
     await helper.deployed();
     const [token0, token1, isAsset, settleTime] = await helper.hiPoption(
       poption.address
@@ -134,9 +119,14 @@ describe("test helper", () => {
       .getBlock(blockId)
       .then(({ timestamp }) => timestamp);
 
+    const PoptionDeployer = await ethers.getContractFactory("PoptionDeployer");
+    const pdeployer = await PoptionDeployer.deploy();
+    await pdeployer.deployed();
+
     const Helper = await ethers.getContractFactory("Helper");
-    const helper = await Helper.deploy();
+    const helper = await Helper.deploy(pdeployer.address);
     await helper.deployed();
+    console.log("deployed");
     const amount = 10000000;
     const poolInit = _.map(slots, () => amount);
     poolInit[0] = Math.round(amount * 0.7);
@@ -175,11 +165,11 @@ describe("test helper", () => {
 
     expect(await swap.poption()).be.eql(poption.address);
     expect(await swap.owner()).be.eql(owner.address);
-    expect(_.map(await poption.balanceOf(swap.address), (i) => +i)).be.eql(
+    expect(_.map(await poption.balanceOfAll(swap.address), (i) => +i)).be.eql(
       poolInit
     );
     expect(
-      _.map(await poption.balanceOf(owner.address), (i) => amount - +i)
+      _.map(await poption.balanceOfAll(owner.address), (i) => amount - +i)
     ).be.eql(poolInit);
   });
 });

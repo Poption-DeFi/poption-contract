@@ -101,7 +101,7 @@ describe("test poption", () => {
       [poption, owner],
       [amount, amount.mul(-1)]
     );
-    expect(await poption.balanceOf(owner.address)).to.eql(
+    expect(await poption.balanceOfAll(owner.address)).to.eql(
       _.map(_.range(16), (i) => amount)
     );
   });
@@ -113,7 +113,7 @@ describe("test poption", () => {
     await expect(() =>
       poption.connect(addr2).mint(amount)
     ).to.changeTokenBalances(erc20, [poption, addr2], [amount, amount.mul(-1)]);
-    expect(await poption.balanceOf(addr2.address)).to.eql(
+    expect(await poption.balanceOfAll(addr2.address)).to.eql(
       _.map(_.range(16), (i) => amount)
     );
   });
@@ -135,7 +135,7 @@ describe("test poption", () => {
       [poption, owner],
       [amount.mul(-1), amount]
     );
-    expect(await poption.balanceOf(owner.address)).to.eql(
+    expect(await poption.balanceOfAll(owner.address)).to.eql(
       _.map(_.range(16), (i) => parseEther("1"))
     );
   });
@@ -160,10 +160,10 @@ describe("test poption", () => {
         _.map(_.range(16), (i) => i * 1000000)
       )
     );
-    expect(await poption.balanceOf(addr1.address)).to.eql(
+    expect(await poption.balanceOfAll(addr1.address)).to.eql(
       _.map(_.range(16), (i) => BigNumber.from(i * 1000000))
     );
-    expect(await poption.balanceOf(owner.address)).to.eql(
+    expect(await poption.balanceOfAll(owner.address)).to.eql(
       _.map(_.range(16), (i) => parseEther("1").sub(i * 1000000))
     );
   });

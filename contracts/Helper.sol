@@ -14,8 +14,24 @@ import "./BlackScholesSwap.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+contract PoptionDeployer {
+    function deploy(
+        address _token,
+        address _oracle,
+        uint256 _settleTime,
+        uint128[16] memory slots_
+    ) external returns (Poption) {
+        return new Poption(_token, _oracle, _settleTime, slots_);
+    }
+}
+
 contract Helper {
+    PoptionDeployer poptionDeployer;
     event Create(address poption, address swap);
+
+    constructor(PoptionDeployer _poptionDeployer) {
+        poptionDeployer = _poptionDeployer;
+    }
 
     function hiPoption(address poption)
         external
@@ -51,7 +67,7 @@ contract Helper {
         uint128 amount,
         uint128[16] memory poolInit
     ) external {
-        Poption poption = new Poption(
+        Poption poption = poptionDeployer.deploy(
             address(token),
             oracle,
             settleTime,
