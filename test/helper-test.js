@@ -146,13 +146,13 @@ describe("test helper", () => {
     const tx = await helper.deploy(
       erc1.address,
       oracle.address,
-      time + 100,
-      time + 200,
-      time + 300,
+      [time + 100, time + 200, time + 300],
       slots,
-      BigNumber.from("0x10200000000000000"),
-      BigNumber.from("0x28f5c28f5c29000"),
-      BigNumber.from("416757209401000000"),
+      [
+        BigNumber.from("0x10200000000000000"),
+        BigNumber.from("0x28f5c28f5c29000"),
+        BigNumber.from("416757209401000000"),
+      ],
       true,
       amount,
       poolInit

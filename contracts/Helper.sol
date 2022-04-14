@@ -40,31 +40,22 @@ contract Helper {
     function deploy(
         IERC20 token,
         address oracle,
-        uint256 closeTime,
-        uint256 settleTime,
-        uint256 destoryTime,
+        uint256[3] calldata times,
         uint128[16] calldata slots,
-        uint128 fee0,
-        uint128 fee1,
-        uint128 iv,
+        uint128[3] calldata swapArgs,
         bool isCash,
         uint128 amount,
         uint128[16] memory poolInit
     ) external {
-        Poption poption = new Poption(
-            address(token),
-            oracle,
-            settleTime,
-            slots
-        );
+        Poption poption = new Poption(address(token), oracle, times[1], slots);
         BlackScholesSwap swap = new BlackScholesSwap(
             msg.sender,
             address(poption),
-            closeTime,
-            destoryTime,
-            fee0,
-            fee1,
-            iv,
+            times[0],
+            times[2],
+            swapArgs[0],
+            swapArgs[1],
+            swapArgs[2],
             isCash
         );
         token.transferFrom(msg.sender, address(this), amount);
