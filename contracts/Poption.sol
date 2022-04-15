@@ -5,9 +5,9 @@
  * Author: Hydrogenbear <hydrogenbear@poption.org>
  */
 pragma solidity ^0.8.4;
-
+import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import "./interface/IOracle.sol";
 import "./interface/ISwap.sol";
@@ -38,7 +38,7 @@ contract Poption is IERC1155 {
     uint128[SLOT_NUM] public slots;
     mapping(address => uint128[SLOT_NUM]) public options;
     mapping(bytes32 => bool) public usedHash;
-    mapping(address => mapping(address => bool)) private allowance;
+    mapping(address => mapping(address => bool)) private approval;
     uint128 public totalLockedAsset;
 
     IOracle public immutable oracle;
@@ -129,7 +129,7 @@ contract Poption is IERC1155 {
         return options[addr];
     }
 
-    function _safeTransferFrom(
+    function _safeTokenTransferFrom(
         address token_,
         address from_,
         address to_,
@@ -145,7 +145,7 @@ contract Poption is IERC1155 {
         );
     }
 
-    function _safeTransfer(
+    function _safeTokenTransfer(
         address token_,
         address to_,
         uint256 value_
@@ -183,13 +183,12 @@ contract Poption is IERC1155 {
 
     function transfer(address _recipient, uint128[SLOT_NUM] calldata _option)
         external
-        noReentrant
     {
         _transfer(msg.sender, _recipient, _option);
     }
 
     function mint(uint128 _assert) public noReentrant {
-        _safeTransferFrom(token, msg.sender, address(this), _assert);
+        _safeTokenTransferFrom(token, msg.sender, address(this), _assert);
         uint256[] memory value = new uint256[](SLOT_NUM);
         for (uint256 i = 0; i < SLOT_NUM; i++) {
             options[msg.sender][i] += _assert;
@@ -207,7 +206,7 @@ contract Poption is IERC1155 {
                 value[i] = _assert;
             }
         }
-        _safeTransfer(token, address(msg.sender), uint256(_assert));
+        _safeTokenTransfer(token, address(msg.sender), uint256(_assert));
         totalLockedAsset -= _assert;
         emit TransferBatch(msg.sender, msg.sender, address(0), allIds, value);
     }
@@ -233,9 +232,9 @@ contract Poption is IERC1155 {
         uint128[SLOT_NUM] calldata _out,
         uint128[SLOT_NUM] calldata _in
     ) public noReentrant {
-        ISwap(marketMaker).toSwap(_out, _in);
         _transfer(marketMaker, msg.sender, _out);
         _transfer(msg.sender, marketMaker, _in);
+        ISwap(marketMaker).toSwap(_out, _in);
     }
 
     function liquidIn(address marketMaker, uint128 frac) external noReentrant {
@@ -264,21 +263,17 @@ contract Poption is IERC1155 {
 
         options[msg.sender][settleIdx - 1] = 0;
         options[msg.sender][settleIdx] = 0;
-        _safeTransfer(token, address(msg.sender), _assert);
+        _safeTokenTransfer(token, address(msg.sender), _assert);
         totalLockedAsset -= _assert;
         emit TransferBatch(msg.sender, msg.sender, address(0), allIds, value);
     }
 
     /** ERC1155 interface */
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override(IERC165)
-        returns (bool)
-    {
-        return interfaceId == type(IERC1155).interfaceId;
+    function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
+        return
+            interfaceId == type(IERC1155).interfaceId ||
+            interfaceId == type(IERC165).interfaceId;
     }
 
     function balanceOf(address addr, uint256 i)
@@ -305,7 +300,7 @@ contract Poption is IERC1155 {
     }
 
     function setApprovalForAll(address operator, bool approved) external {
-        allowance[msg.sender][operator] = approved;
+        approval[msg.sender][operator] = approved;
         emit ApprovalForAll(msg.sender, operator, approved);
     }
 
@@ -317,7 +312,7 @@ contract Poption is IERC1155 {
         view
         returns (bool)
     {
-        return allowance[account][operator];
+        return approval[account][operator];
     }
 
     function safeTransferFrom(
@@ -326,13 +321,14 @@ contract Poption is IERC1155 {
         uint256 id,
         uint256 amount,
         bytes memory data
-    ) external noReentrant {
+    ) external {
         require(
             from == msg.sender || isApprovedForAll(from, msg.sender),
-            "NO APPROVE"
+            "NO APPROVAL"
         );
-        require(amount < Math64x64.ONEONE && id < SLOT_NUM, "OVERFLOW");
-        require(amount <= options[from][id], "NEO");
+        require(to != address(0), "ZERO ADDRESS");
+        require(id < SLOT_NUM, "WRONG ID");
+        require(amount <= options[from][id], "NE BA");
         options[to][id] += uint128(amount);
         unchecked {
             options[from][id] -= uint128(amount);
@@ -350,18 +346,19 @@ contract Poption is IERC1155 {
         uint256[] memory ids,
         uint256[] memory amounts,
         bytes memory data
-    ) external noReentrant {
+    ) external {
+        require(to != address(0), "ZERO ADDRESS");
         require(
             from == msg.sender || isApprovedForAll(from, msg.sender),
-            "NO APPROVE"
+            "NO APPROVAL"
         );
         require(ids.length == amounts.length, "LEN MM");
         for (uint256 i = 0; i < ids.length; ++i) {
             uint256 id = ids[i];
             uint256 amount = amounts[i];
 
-            require(amount < Math64x64.ONEONE && id < SLOT_NUM, "OVERFLOW");
-            require(amount <= options[from][id], "NEO");
+            require(id < SLOT_NUM, "WRONG ID");
+            require(amount <= options[from][id], "NE BA");
             options[to][id] += uint128(amount);
             unchecked {
                 options[from][id] -= uint128(amount);

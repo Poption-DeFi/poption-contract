@@ -196,7 +196,7 @@ _.mapKeys(inits, (getSwap, swapName) => {
 
     it("cannot swap because of reject by not enough liquidity", async () => {
       const _in = _.map(_.range(16), (i) => BigNumber.from(i * 1000000));
-      const _out = _.map(_.range(16), (i) => parseEther("1").mul(i));
+      const _out = await poption.balanceOfAll(swap.address);
 
       await expect(
         poption.connect(addr2).swap(swap.address, _out, _in)
