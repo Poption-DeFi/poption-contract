@@ -27,7 +27,7 @@ contract PoptionDeployer {
 
 contract Helper {
     PoptionDeployer poptionDeployer;
-    event Create(address poption, address swap);
+    event Create(address indexed poption, address indexed swap);
 
     constructor(PoptionDeployer _poptionDeployer) {
         poptionDeployer = _poptionDeployer;
