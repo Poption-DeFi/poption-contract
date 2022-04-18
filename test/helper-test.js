@@ -81,35 +81,35 @@ const deployPoption = async (oracle, erc20) => {
 describe("test helper", () => {
   before(async () => {});
 
-  it("can help is cash", async () => {
+  it("can display is cash", async () => {
     const [oracle, erc1, erc2] = await prepareEnv();
     const poption = await deployPoption(oracle, erc2);
 
     const Helper = await ethers.getContractFactory("Helper");
     const helper = await Helper.deploy(oracle.address);
     await helper.deployed();
-    const [token0, token1, isAsset, settleTime] = await helper.hiPoption(
+    const [token0, token1, token, settleTime] = await helper.displayPoption(
       poption.address
     );
     expect(token0).to.eql("TST2");
     expect(token1).to.eql("TST");
-    expect(isAsset).to.be.false;
+    expect(token).to.eql("TST");
     expect(settleTime).to.eql(await poption.settleTime());
   });
 
-  it("can help is asset", async () => {
+  it("can display is asset", async () => {
     const [oracle, erc1, erc2] = await prepareEnv();
     const poption = await deployPoption(oracle, erc1);
 
     const Helper = await ethers.getContractFactory("Helper");
     const helper = await Helper.deploy(oracle.address);
     await helper.deployed();
-    const [token0, token1, isAsset, settleTime] = await helper.hiPoption(
+    const [token0, token1, token, settleTime] = await helper.displayPoption(
       poption.address
     );
     expect(token0).to.eql("TST2");
     expect(token1).to.eql("TST");
-    expect(isAsset).to.be.true;
+    expect(token).to.eql("TST2");
     expect(settleTime).to.eql(await poption.settleTime());
   });
 

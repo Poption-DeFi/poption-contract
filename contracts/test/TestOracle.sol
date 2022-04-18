@@ -6,7 +6,9 @@
  */
 pragma solidity ^0.8.4;
 
-contract TestOracle {
+import "../interface/IOracle.sol";
+
+contract TestOracle is IOracle {
     uint128 public value;
 
     constructor() {
@@ -19,5 +21,21 @@ contract TestOracle {
 
     function set(uint128 _x) public {
         value = _x;
+    }
+
+    function source() external pure returns (address) {
+        return address(0);
+    }
+
+    function token0Symbol() external pure returns (string memory) {
+        return "";
+    }
+
+    function token1Symbol() external pure returns (string memory) {
+        return "";
+    }
+
+    function symbol() external pure returns (string memory) {
+        return "TestORC";
     }
 }

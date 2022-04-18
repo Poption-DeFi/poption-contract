@@ -117,12 +117,6 @@ _.mapKeys(inits, (getSwap, swapName) => {
       expect(await swap.liqPoolShareAll()).to.eql(parseEther("1.9"));
     });
 
-    it("can setFeeRate", async () => {
-      await expect(
-        swap.connect(addr1).setFeeRate(BigNumber.from("0x10200000000000000"))
-      ).to.be.fulfilled;
-    });
-
     xit("can swap", async () => {
       const _in = _.map(_.range(SLOT_NUM), (i) => BigNumber.from(i * 1000000));
       const _out = _.map(_.range(SLOT_NUM), (i) => BigNumber.from(i * 800000));

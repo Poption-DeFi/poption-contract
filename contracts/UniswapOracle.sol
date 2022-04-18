@@ -9,15 +9,19 @@ pragma solidity ^0.8.4;
 
 import "./Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import "./interface/IOracle.sol";
 
-contract UniswapOracle {
+contract UniswapOracle is IOracle {
     using Math64x64 for uint128;
     using Math64x64 for int128;
     address public immutable source;
     uint256 public divisor;
     uint256 public inverse;
-    address public token0;
-    address public token1;
+    string public token0Symbol;
+    string public token1Symbol;
+
+    string public symbol;
 
     bytes4 private constant SELECTOR_SLOT0 =
         bytes4(keccak256(bytes("slot0()")));
@@ -44,14 +48,17 @@ contract UniswapOracle {
         address token1_ = abi.decode(data, (address));
         divisor = _divisor;
         if (_inverse) {
-            token0 = token1_;
-            token1 = token0_;
+            token0Symbol = IERC20Metadata(token1_).symbol();
+            token1Symbol = IERC20Metadata(token0_).symbol();
             inverse = 1;
         } else {
-            token0 = token0_;
-            token1 = token1_;
+            token0Symbol = IERC20Metadata(token0_).symbol();
+            token1Symbol = IERC20Metadata(token1_).symbol();
             inverse = 0;
         }
+        symbol = string(
+            abi.encodePacked("ORA-u-", token0Symbol, "/", token1Symbol)
+        );
     }
 
     function get() external view returns (uint128) {

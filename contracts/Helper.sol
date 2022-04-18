@@ -34,23 +34,21 @@ contract Helper {
         poptionDeployer = _poptionDeployer;
     }
 
-    function hiPoption(address poption)
+    function displayPoption(address poption)
         external
         view
         returns (
             string memory symbol0,
             string memory symbol1,
-            bool isAsset,
+            string memory tokenSymbol,
             uint256 settleTime
         )
     {
         IOracle oracle = Poption(poption).oracle();
         address token = Poption(poption).token();
-        address token0 = oracle.token0();
-        address token1 = oracle.token1();
-        symbol0 = IERC20Metadata(token0).symbol();
-        symbol1 = IERC20Metadata(token1).symbol();
-        isAsset = token == token0;
+        symbol0 = oracle.token0Symbol();
+        symbol1 = oracle.token1Symbol();
+        tokenSymbol = IERC20Metadata(token).symbol();
         settleTime = Poption(poption).settleTime();
     }
 

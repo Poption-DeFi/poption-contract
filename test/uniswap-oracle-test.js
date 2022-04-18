@@ -38,9 +38,11 @@ describe("Oracle", () => {
         0.0003637706074729216
       );
     });
-    it("can get Token", async () => {
-      expect(await oracle.token0()).to.equal(erc202.address);
-      expect(await oracle.token1()).to.equal(erc20.address);
+    it("can get info", async () => {
+      expect(await oracle.token0Symbol()).to.equal("TST2");
+      expect(await oracle.token1Symbol()).to.equal("TST");
+      expect(await oracle.symbol()).to.equal("ORA-u-TST2/TST");
+      expect(await oracle.source()).to.eql(pool.address);
     });
     it("can change", async () => {
       await pool.set("1513035456556694987398916947481985");
@@ -62,9 +64,11 @@ describe("Oracle", () => {
         1 / 0.0003637706074729216
       );
     });
-    it("can get Token", async () => {
-      expect(await oracle.token0()).to.equal(erc20.address);
-      expect(await oracle.token1()).to.equal(erc202.address);
+    it("can get info", async () => {
+      expect(await oracle.token0Symbol()).to.equal("TST");
+      expect(await oracle.token1Symbol()).to.equal("TST2");
+      expect(await oracle.symbol()).to.equal("ORA-u-TST/TST2");
+      expect(await oracle.source()).to.eql(pool.address);
     });
     it("can change", async () => {
       await pool.set("1513035456556694987398916947481985");
