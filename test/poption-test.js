@@ -12,7 +12,7 @@ const { estGas, readGas } = require("../testUtils");
 
 chai.use(solidity);
 chai.use(chaiAsPromised);
-const SLOT_NUM = 10;
+const { SLOT_NUM } = require("../slotNum");
 
 describe("test oracle", () => {
   let oracle;

@@ -8,7 +8,7 @@ const { expect } = chai;
 const chaiAsPromised = require("chai-as-promised");
 chai.use(solidity);
 chai.use(chaiAsPromised);
-const SLOT_NUM = 10;
+const { SLOT_NUM } = require("../slotNum");
 
 const slots = [
   "416821430997571584",

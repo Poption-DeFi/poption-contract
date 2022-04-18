@@ -10,7 +10,7 @@ chai.use(solidity);
 chai.use(chaiAsPromised);
 const tus = require("../testUtils");
 const readGas = tus.readGas;
-const SLOT_NUM = 10;
+const { SLOT_NUM } = require("../slotNum");
 
 const slots = [
   "416821430997571584",
