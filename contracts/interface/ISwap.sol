@@ -5,9 +5,13 @@
  */
 pragma solidity ^0.8.4;
 
+import "../SlotNum.sol";
+
 interface ISwap {
-    function toSwap(uint128[16] calldata _out, uint128[16] calldata _in)
-        external;
+    function toSwap(
+        uint128[SLOT_NUM] calldata _out,
+        uint128[SLOT_NUM] calldata _in
+    ) external;
 
     function toLiquidIn(uint128 frac, address sender) external;
 }

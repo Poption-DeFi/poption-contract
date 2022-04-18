@@ -8,6 +8,7 @@ const { expect } = chai;
 const chaiAsPromised = require("chai-as-promised");
 chai.use(solidity);
 chai.use(chaiAsPromised);
+const { SLOT_NUM } = require("../slotNum");
 
 const slots = [
   "416821430997571584",
@@ -26,7 +27,8 @@ const slots = [
   "14282946835016896512",
   "15349571866095306752",
   "16349571866095306752",
-];
+].slice(0, SLOT_NUM);
+
 const prepareEnv = async () => {
   const signers = await ethers.getSigners();
 
@@ -79,35 +81,35 @@ const deployPoption = async (oracle, erc20) => {
 describe("test helper", () => {
   before(async () => {});
 
-  it("can help is cash", async () => {
+  it("can display is cash", async () => {
     const [oracle, erc1, erc2] = await prepareEnv();
     const poption = await deployPoption(oracle, erc2);
 
     const Helper = await ethers.getContractFactory("Helper");
     const helper = await Helper.deploy(oracle.address);
     await helper.deployed();
-    const [token0, token1, isAsset, settleTime] = await helper.hiPoption(
+    const [token0, token1, token, settleTime] = await helper.displayPoption(
       poption.address
     );
     expect(token0).to.eql("TST2");
     expect(token1).to.eql("TST");
-    expect(isAsset).to.be.false;
+    expect(token).to.eql("TST");
     expect(settleTime).to.eql(await poption.settleTime());
   });
 
-  it("can help is asset", async () => {
+  it("can display is asset", async () => {
     const [oracle, erc1, erc2] = await prepareEnv();
     const poption = await deployPoption(oracle, erc1);
 
     const Helper = await ethers.getContractFactory("Helper");
     const helper = await Helper.deploy(oracle.address);
     await helper.deployed();
-    const [token0, token1, isAsset, settleTime] = await helper.hiPoption(
+    const [token0, token1, token, settleTime] = await helper.displayPoption(
       poption.address
     );
     expect(token0).to.eql("TST2");
     expect(token1).to.eql("TST");
-    expect(isAsset).to.be.true;
+    expect(token).to.eql("TST2");
     expect(settleTime).to.eql(await poption.settleTime());
   });
 

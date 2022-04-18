@@ -11,3 +11,8 @@ artifacts
 /arguments.js
 /contracts/test/TestHelper.sol
 /node.out
+/.eslintignore
+/.eslintrc.js
+/.prettierignore
+/.solhint.json
+/.solhintignore

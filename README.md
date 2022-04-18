@@ -1,9 +1,9 @@
 # Poption contract
 
-![Statements](https://img.shields.io/badge/statements-99.68%25-brightgreen.svg?style=flat)
-![Branches](https://img.shields.io/badge/branches-87.21%25-yellow.svg?style=flat)
+![Statements](https://img.shields.io/badge/statements-99.74%25-brightgreen.svg?style=flat)
+![Branches](https://img.shields.io/badge/branches-86.67%25-yellow.svg?style=flat)
 ![Functions](https://img.shields.io/badge/functions-100%25-brightgreen.svg?style=flat)
-![Lines](https://img.shields.io/badge/lines-99.7%25-brightgreen.svg?style=flat)
+![Lines](https://img.shields.io/badge/lines-99.75%25-brightgreen.svg?style=flat)
 
 This repository contains the smart contracts for the Poption Protocol.
 

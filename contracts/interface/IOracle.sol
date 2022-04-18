@@ -12,7 +12,9 @@ interface IOracle {
 
     function get() external view returns (uint128);
 
-    function token0() external view returns (address);
+    function token0Symbol() external view returns (string memory);
 
-    function token1() external view returns (address);
+    function token1Symbol() external view returns (string memory);
+
+    function symbol() external view returns (string memory);
 }

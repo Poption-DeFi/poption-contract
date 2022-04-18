@@ -12,52 +12,8 @@ const { estGas, readGas } = require("../testUtils");
 
 chai.use(solidity);
 chai.use(chaiAsPromised);
-describe("test oracle", () => {
-  let oracle;
-  before(async () => {
-    const Oracle = await ethers.getContractFactory("TestOracle");
-    oracle = await Oracle.deploy();
-    await oracle.deployed();
-  });
+const { SLOT_NUM } = require("../slotNum");
 
-  it("should be initialized as 1", async () => {
-    expect(await oracle.get()).to.equal(1);
-  });
-
-  describe("action", () => {
-    it("x should be set and read", async () => {
-      await oracle.set(1000);
-      expect(await oracle.get()).to.equal(1000);
-    });
-  });
-});
-
-describe("test swap", () => {
-  let swap;
-  before(async () => {
-    const Swap = await ethers.getContractFactory("TestSwap");
-    swap = await Swap.deploy();
-    await swap.deployed();
-  });
-
-  it("always reject toswap", async () => {
-    await expect(swap.toSwap(_.range(16), _.range(16))).be.rejected;
-  });
-
-  it("always reject toLiqudIn", async () => {
-    await expect(swap.toLiquidIn(20)).be.rejected;
-  });
-
-  it("always accept toswap", async () => {
-    await swap.set(true);
-    await expect(swap.toSwap(_.range(16), _.range(16))).to.fulfilled;
-  });
-
-  it("always accept toLiquidIn", async () => {
-    await swap.set(true);
-    await expect(swap.toLiquidIn(20)).to.fulfilled;
-  });
-});
 describe("test poption", () => {
   let oracle, erc20, poption, swap;
   let owner, addr1, addr2, addr3, addrs;
@@ -86,7 +42,7 @@ describe("test poption", () => {
       erc20.address,
       oracle.address,
       time + 200,
-      _.range(100000, 1600001, 100000)
+      _.range(100000, 1600001, 100000).slice(0, SLOT_NUM)
     );
     await poption.deployed();
   });
@@ -101,7 +57,7 @@ describe("test poption", () => {
       [amount, amount.mul(-1)]
     );
     expect(await poption.balanceOfAll(owner.address)).to.eql(
-      _.map(_.range(16), (i) => amount)
+      _.map(_.range(SLOT_NUM), (i) => amount)
     );
   });
 
@@ -113,7 +69,7 @@ describe("test poption", () => {
       poption.connect(addr2).mint(amount)
     ).to.changeTokenBalances(erc20, [poption, addr2], [amount, amount.mul(-1)]);
     expect(await poption.balanceOfAll(addr2.address)).to.eql(
-      _.map(_.range(16), (i) => amount)
+      _.map(_.range(SLOT_NUM), (i) => amount)
     );
   });
 
@@ -135,7 +91,7 @@ describe("test poption", () => {
       [amount.mul(-1), amount]
     );
     expect(await poption.balanceOfAll(owner.address)).to.eql(
-      _.map(_.range(16), (i) => parseEther("1"))
+      _.map(_.range(SLOT_NUM), (i) => parseEther("1"))
     );
   });
 
@@ -149,21 +105,21 @@ describe("test poption", () => {
       await expect(
         poption.transfer(
           addr1.address,
-          _.map(_.range(16), (i) => i * 1000000)
+          _.map(_.range(SLOT_NUM), (i) => i * 1000000)
         )
       ).to.fulfilled
     );
     estGas(
       poption.estimateGas.transfer(
         addr1.address,
-        _.map(_.range(16), (i) => i * 1000000)
+        _.map(_.range(SLOT_NUM), (i) => i * 1000000)
       )
     );
     expect(await poption.balanceOfAll(addr1.address)).to.eql(
-      _.map(_.range(16), (i) => BigNumber.from(i * 1000000))
+      _.map(_.range(SLOT_NUM), (i) => BigNumber.from(i * 1000000))
     );
     expect(await poption.balanceOfAll(owner.address)).to.eql(
-      _.map(_.range(16), (i) => parseEther("1").sub(i * 1000000))
+      _.map(_.range(SLOT_NUM), (i) => parseEther("1").sub(i * 1000000))
     );
   });
 
@@ -171,13 +127,13 @@ describe("test poption", () => {
     await expect(
       poption.transfer(
         addr1.address,
-        _.map(_.range(16), (i) => parseEther("20").mul(i))
+        _.map(_.range(SLOT_NUM), (i) => parseEther("20").mul(i))
       )
     ).be.rejectedWith(Error, /.*NEO.*/);
   });
 
   xit("can transfer from", async () => {
-    const option = _.map(_.range(16), (i) => BigNumber.from(i * 1000000));
+    const option = _.map(_.range(SLOT_NUM), (i) => BigNumber.from(i * 1000000));
     const seed = 1;
     const data = solidityKeccak256(
       ["address", "address", "address", "uint128[16]", "uint64"],
@@ -277,7 +233,7 @@ describe("test erc1155", () => {
       erc20.address,
       oracle.address,
       time + 200,
-      _.range(100000, 1600001, 100000)
+      _.range(100000, 1600001, 100000).slice(0, SLOT_NUM)
     );
     await poption.deployed();
 
@@ -290,7 +246,7 @@ describe("test erc1155", () => {
       [amount, amount.mul(-1)]
     );
     expect(await poption.balanceOfAll(owner.address)).to.eql(
-      _.map(_.range(16), (i) => amount)
+      _.map(_.range(SLOT_NUM), (i) => amount)
     );
   });
 
@@ -372,7 +328,7 @@ describe("test erc1155", () => {
         .safeBatchTransferFrom(
           addr2.address,
           addr3.address,
-          [15, 16],
+          [2, 16],
           [amount, amount],
           "0x"
         )
@@ -385,7 +341,7 @@ describe("test erc1155", () => {
     await expect(
       poption
         .connect(addr2)
-        .safeTransferFrom(addr2.address, addr3.address, 10, amount, "0x")
+        .safeTransferFrom(addr2.address, addr3.address, 2, amount, "0x")
     ).to.be.rejectedWith(Error, /.*NE BA.*/);
   });
 
@@ -399,7 +355,7 @@ describe("test erc1155", () => {
         .safeBatchTransferFrom(
           addr2.address,
           addr3.address,
-          [10, 11],
+          [2, 3],
           [amount1, amount2],
           "0x"
         )
@@ -415,7 +371,7 @@ describe("test erc1155", () => {
         .safeBatchTransferFrom(
           addr2.address,
           addr3.address,
-          [10, 11, 12],
+          [2, 3, 6],
           [amount, amount],
           "0x"
         )
@@ -525,7 +481,7 @@ describe("test erc1155", () => {
         .safeBatchTransferFrom(
           addr2.address,
           erc20.address,
-          [9, 10],
+          [8, 9],
           [amount, amount],
           "0x"
         )
@@ -552,7 +508,7 @@ describe("test erc1155", () => {
         .safeBatchTransferFrom(
           addr2.address,
           receiver.address,
-          [9, 10],
+          [8, 9],
           [amount, amount],
           "0x"
         )
@@ -582,7 +538,7 @@ describe("test erc1155", () => {
         .safeBatchTransferFrom(
           addr2.address,
           receiver.address,
-          [9, 10],
+          [8, 9],
           [amount, amount],
           "0x"
         )
@@ -615,7 +571,7 @@ describe("test erc1155", () => {
         .safeBatchTransferFrom(
           addr2.address,
           receiver.address,
-          [9, 10],
+          [8, 9],
           [amount, amount],
           "0x"
         )

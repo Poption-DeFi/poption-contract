@@ -15,27 +15,9 @@ import "./Math.sol";
 
 contract Poption is IERC1155 {
     using Math64x64 for uint128;
-    uint256 public constant SLOT_NUM = 16;
-    uint256[] public allIds = [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15
-    ];
 
     uint128[SLOT_NUM] public slots;
+    uint256[] public allIds;
     mapping(address => uint128[SLOT_NUM]) public options;
     mapping(bytes32 => bool) public usedHash;
     mapping(address => mapping(address => bool)) private approval;
@@ -65,6 +47,9 @@ contract Poption is IERC1155 {
         oracle = IOracle(_oracle);
         settleTime = _settleTime;
         slots = slots_;
+        for (uint256 i = 0; i < SLOT_NUM; i++) {
+            allIds.push(i);
+        }
     }
 
     function getState()

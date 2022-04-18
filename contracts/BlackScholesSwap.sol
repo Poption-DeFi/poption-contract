@@ -51,7 +51,7 @@ contract BlackScholesSwap is BaseCFMMSwap {
     }
 
     function getWeight()
-        internal
+        public
         view
         override
         returns (uint128[SLOT_NUM] memory weight)
