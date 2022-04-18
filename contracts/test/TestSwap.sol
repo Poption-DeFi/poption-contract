@@ -6,8 +6,9 @@
  */
 
 pragma solidity ^0.8.4;
+import "../interface/ISwap.sol";
 
-contract TestSwap {
+contract TestSwap is ISwap {
     bool public value;
 
     constructor() {
@@ -18,7 +19,7 @@ contract TestSwap {
         value = _value;
     }
 
-    function toLiquidIn(uint128) external {
+    function toLiquidIn(uint128, address) external {
         require(value, "RJ");
     }
 

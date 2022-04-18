@@ -14,52 +14,6 @@ chai.use(solidity);
 chai.use(chaiAsPromised);
 const { SLOT_NUM } = require("../slotNum");
 
-describe("test oracle", () => {
-  let oracle;
-  before(async () => {
-    const Oracle = await ethers.getContractFactory("TestOracle");
-    oracle = await Oracle.deploy();
-    await oracle.deployed();
-  });
-
-  it("should be initialized as 1", async () => {
-    expect(await oracle.get()).to.equal(1);
-  });
-
-  describe("action", () => {
-    it("x should be set and read", async () => {
-      await oracle.set(1000);
-      expect(await oracle.get()).to.equal(1000);
-    });
-  });
-});
-
-describe("test swap", () => {
-  let swap;
-  before(async () => {
-    const Swap = await ethers.getContractFactory("TestSwap");
-    swap = await Swap.deploy();
-    await swap.deployed();
-  });
-
-  it("always reject toswap", async () => {
-    await expect(swap.toSwap(_.range(16), _.range(16))).be.rejected;
-  });
-
-  it("always reject toLiqudIn", async () => {
-    await expect(swap.toLiquidIn(20)).be.rejected;
-  });
-
-  it("always accept toswap", async () => {
-    await swap.set(true);
-    await expect(swap.toSwap(_.range(16), _.range(16))).to.fulfilled;
-  });
-
-  it("always accept toLiquidIn", async () => {
-    await swap.set(true);
-    await expect(swap.toLiquidIn(20)).to.fulfilled;
-  });
-});
 describe("test poption", () => {
   let oracle, erc20, poption, swap;
   let owner, addr1, addr2, addr3, addrs;

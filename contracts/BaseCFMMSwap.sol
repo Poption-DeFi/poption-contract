@@ -83,7 +83,7 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
     }
 
     function getWeight()
-        internal
+        public
         view
         virtual
         returns (uint128[SLOT_NUM] memory weight)
@@ -132,11 +132,11 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
     }
 
     function tradeFunction(
-        uint128[SLOT_NUM] memory _liq,
-        uint128[SLOT_NUM] memory _w
+        uint128[SLOT_NUM] memory liq,
+        uint128[SLOT_NUM] memory w
     ) internal pure returns (int128 res) {
         for (uint256 i = 0; i < SLOT_NUM; i++) {
-            res += _liq[i].ln().mul(int128(_w[i]));
+            res += liq[i].ln().mul(int128(w[i]));
         }
     }
 
@@ -217,6 +217,7 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
         uint128 shareAdd = _frac.mul(liqPoolShareAll);
         liqPoolShareAll += shareAdd;
         liqPoolShare[_sender] += shareAdd;
+        emit Transfer(address(0), _sender, shareAdd);
         uint128[SLOT_NUM] memory weight = getWeight();
         for (uint256 i = 0; i < SLOT_NUM; i++) {
             priceDivisor += uint128(weight[i]).div(liqPool[i]);
@@ -258,6 +259,7 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
             liqPoolShare[msg.sender] -= _share;
             liqPoolShareAll -= _share - optShare;
             valueNoFee[msg.sender] = 0;
+            emit Transfer(msg.sender, address(0), _share - optShare);
         } else {
             liqPoolShare[msg.sender] -= _share;
             liqPoolShareAll -= _share;
@@ -265,6 +267,7 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
             for (uint256 i = 0; i < SLOT_NUM; i++) {
                 liqPool[i] -= lqRemove[i];
             }
+            emit Transfer(msg.sender, address(0), _share);
         }
         poption.transfer(msg.sender, lqRemove);
     }
@@ -292,7 +295,6 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
     ) internal virtual {
         require(from != address(0), "F 0 Addr");
         require(to != address(0), "T 0 Addr");
-        require(amount < Math64x64.ONEONE);
 
         uint128 fromShare = liqPoolShare[from];
         require(fromShare >= amount, "Ex Share");
@@ -319,7 +321,7 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
     ) public returns (bool success) {
         uint256 currentAllowance = allowances[_from][msg.sender];
         if (currentAllowance != type(uint256).max) {
-            require(currentAllowance >= _value, "NotEnAl");
+            require(currentAllowance >= _value, "No En Al");
             unchecked {
                 allowances[_from][msg.sender] = currentAllowance - _value;
                 emit Approval(_from, msg.sender, _value);
@@ -333,7 +335,7 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
         public
         returns (bool success)
     {
-        require(_spender != address(0), "ERC20: approve to the zero address");
+        require(_spender != address(0), "A 0 Addr");
 
         allowances[msg.sender][_spender] = _value;
         emit Approval(msg.sender, _spender, _value);

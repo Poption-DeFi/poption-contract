@@ -181,19 +181,18 @@ _.mapKeys(inits, (getSwap, swapName) => {
         await poption.balanceOfAll(swap.address)
       );
     });
+
     it("cannot swap because of reject by trade function", async () => {
+      const _out = _.map(_.range(SLOT_NUM), (i) => BigNumber.from(i * 1000000));
       const _in = _.map(_.range(SLOT_NUM), (i) => BigNumber.from(i * 1000000));
-      const _out = _.map(_.range(SLOT_NUM), (i) =>
-        BigNumber.from(990000).mul(i)
-      );
       await expect(
         poption.connect(addr2).swap(swap.address, _out, _in)
       ).be.rejectedWith(Error, /.*PMC.*/);
     });
 
     it("cannot swap because of reject by not enough liquidity", async () => {
-      const _in = _.map(_.range(SLOT_NUM), (i) => BigNumber.from(i * 1000000));
       const _out = await poption.balanceOfAll(swap.address);
+      const _in = _.map(_.range(SLOT_NUM), (i) => BigNumber.from(i * 1000000));
 
       await expect(
         poption.connect(addr2).swap(swap.address, _out, _in)
@@ -287,6 +286,82 @@ _.mapKeys(inits, (getSwap, swapName) => {
       const share_ = await swap.liqPoolShare(addr2.address);
       expect(share_).to.equal(share.sub(shareOut));
       expect(await swap.liqPoolShareAll()).to.equal(shareAll.sub(shareOut));
+    });
+
+    it("read total supply", async () => {
+      expect(await swap.totalSupply()).to.eql(await swap.liqPoolShareAll());
+    });
+
+    it("read balanceOf", async () => {
+      expect(await swap.balanceOf(addr2.address)).to.eql(
+        await swap.liqPoolShare(addr2.address)
+      );
+    });
+
+    it("can transfer", async () => {
+      await expect(() =>
+        swap.connect(addr2).transfer(addr3.address, 1000)
+      ).to.changeTokenBalances(swap, [addr2, addr3], [-1000, 1000]);
+    });
+
+    it("cannot transfer From without allowance", async () => {
+      await expect(
+        swap.connect(addr2).transferFrom(addr3.address, addr2.address, 1000)
+      ).to.rejectedWith(Error, "No En Al");
+    });
+
+    it("cannot transfer exceed Share", async () => {
+      await expect(
+        swap
+          .connect(addr2)
+          .transfer(addr3.address, "0x400000000000000000000000000000000")
+      ).to.rejectedWith(Error, "Ex Share");
+    });
+
+    it("cannot transfer to 0 addr", async () => {
+      await expect(
+        swap.connect(addr2).transfer(ethers.constants.AddressZero, 1000)
+      ).to.rejectedWith(Error, "T 0 Addr");
+    });
+
+    it("cannot give allowance to 0 addr", async () => {
+      await expect(
+        swap.connect(addr3).approve(ethers.constants.AddressZero, 500)
+      ).to.rejectedWith(Error, "A 0 Addr");
+    });
+
+    it("can give allowance", async () => {
+      await expect(swap.connect(addr3).approve(addr2.address, 500)).to
+        .fulfilled;
+      expect(+(await swap.allowance(addr3.address, addr2.address))).to.eql(500);
+    });
+
+    it("cannot transferFrom more than allowance", async () => {
+      await expect(
+        swap.connect(addr2).transferFrom(addr3.address, addr2.address, 600)
+      ).to.rejectedWith(Error, "No En Al");
+    });
+
+    it("can transfer From with allowance", async () => {
+      await expect(() =>
+        swap.connect(addr2).transferFrom(addr3.address, addr2.address, 500)
+      ).to.changeTokenBalances(swap, [addr2, addr3], [500, -500]);
+      expect(+(await swap.allowance(addr3.address, addr2.address))).to.eql(0);
+    });
+
+    it("can transfer From with unlimited allowance", async () => {
+      await expect(
+        swap.connect(addr3).approve(addr2.address, ethers.constants.MaxUint256)
+      ).to.fulfilled;
+      await expect(
+        swap.connect(addr2).transferFrom(addr3.address, addr2.address, 600)
+      ).to.rejectedWith(Error, "Ex Share");
+      await expect(() =>
+        swap.connect(addr2).transferFrom(addr3.address, addr2.address, 500)
+      ).to.changeTokenBalances(swap, [addr2, addr3], [500, -500]);
+      expect(await swap.allowance(addr3.address, addr2.address)).to.eql(
+        ethers.constants.MaxUint256
+      );
     });
 
     it("can remove liquidity 2", async () => {
@@ -400,7 +475,6 @@ _.mapKeys(inits, (getSwap, swapName) => {
         poption.balanceOfAll(swap.address),
       ]);
       await expect(swap.connect(addr1).destroy()).to.fulfilled;
-      console.log("2");
       const balAfter = await poption.balanceOfAll(addr1.address);
       expect(_.map(balAfter, (i) => i.toString())).to.eql(
         _.map(_.zip(balBefore, balSwap), ([i, j]) => i.add(j).toString())
@@ -443,7 +517,7 @@ describe(`test BlackScholesSwap 2`, () => {
     expect(await swap.liqPoolShareAll()).to.eql(parseEther("1.9"));
   });
 
-  it("can reweight", async () => {
+  it("can reweight from spot price change", async () => {
     const oldWeight = (await swap.getStatus())[0];
     await oracle.set(slots[5]);
     const currWeight = (await swap.getStatus())[0];
@@ -451,5 +525,23 @@ describe(`test BlackScholesSwap 2`, () => {
     expect(+currWeight[5]).to.gt(+currWeight[6]);
     expect(+currWeight[4]).to.gt(+currWeight[7]);
     expect(+currWeight[6]).to.gt(+currWeight[7]);
+  });
+
+  it("can reweight from time change", async () => {
+    const oldWeight = (await swap.getStatus())[0];
+    await network.provider.send("evm_increaseTime", [150]);
+    await network.provider.send("evm_mine");
+    const currWeight = (await swap.getStatus())[0];
+    expect(oldWeight).not.eql(currWeight);
+    expect(+currWeight[5]).to.gt(+oldWeight[5]);
+  });
+
+  it("can reweight from time change 2", async () => {
+    const oldWeight = (await swap.getStatus())[0];
+    await network.provider.send("evm_increaseTime", [40]);
+    await network.provider.send("evm_mine");
+    const currWeight = (await swap.getStatus())[0];
+    expect(oldWeight).not.eql(currWeight);
+    expect(+currWeight[5]).to.gt(+oldWeight[5]);
   });
 });
