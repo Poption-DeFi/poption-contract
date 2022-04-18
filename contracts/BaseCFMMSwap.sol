@@ -8,12 +8,13 @@ pragma solidity ^0.8.4;
 
 import "./Math.sol";
 import "./Poption.sol";
+import "./SlotNum.sol";
 import "./interface/IOracle.sol";
+import "./interface/ISwap.sol";
 
-contract BaseCFMMSwap {
+contract BaseCFMMSwap is ISwap {
     using Math64x64 for uint128;
     using Math64x64 for int128;
-    uint256 public constant SLOT_NUM = 16;
 
     uint128[SLOT_NUM] public slots;
     uint128[SLOT_NUM] public liqPool;
@@ -79,24 +80,11 @@ contract BaseCFMMSwap {
         returns (uint128[SLOT_NUM] memory weight)
     {
         if (block.timestamp < settleTime) {
-            weight = [
-                uint128(0x1000000000000000),
-                0x1000000000000000,
-                0x1000000000000000,
-                0x1000000000000000,
-                0x1000000000000000,
-                0x1000000000000000,
-                0x1000000000000000,
-                0x1000000000000000,
-                0x1000000000000000,
-                0x1000000000000000,
-                0x1000000000000000,
-                0x1000000000000000,
-                0x1000000000000000,
-                0x1000000000000000,
-                0x1000000000000000,
-                0x1000000000000000
-            ];
+            unchecked {
+                for (uint256 i = 0; i < SLOT_NUM; i++) {
+                    weight[i] = uint128(Math64x64.ONE / SLOT_NUM);
+                }
+            }
         } else {
             weight = getWeightAfterSettle();
         }
@@ -134,11 +122,10 @@ contract BaseCFMMSwap {
         return (getWeight(), liqPool, feeRate);
     }
 
-    function tradeFunction(uint128[16] memory liq, uint128[16] memory w)
-        internal
-        pure
-        returns (int128 res)
-    {
+    function tradeFunction(
+        uint128[SLOT_NUM] memory liq,
+        uint128[SLOT_NUM] memory w
+    ) internal pure returns (int128 res) {
         for (uint256 i = 0; i < SLOT_NUM; i++) {
             res += liq[i].ln().mul(int128(w[i]));
         }

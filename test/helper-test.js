@@ -8,6 +8,7 @@ const { expect } = chai;
 const chaiAsPromised = require("chai-as-promised");
 chai.use(solidity);
 chai.use(chaiAsPromised);
+const SLOT_NUM = 10;
 
 const slots = [
   "416821430997571584",
@@ -26,7 +27,8 @@ const slots = [
   "14282946835016896512",
   "15349571866095306752",
   "16349571866095306752",
-];
+].slice(0, SLOT_NUM);
+
 const prepareEnv = async () => {
   const signers = await ethers.getSigners();
 

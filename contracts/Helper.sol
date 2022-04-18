@@ -10,6 +10,7 @@ pragma solidity ^0.8.4;
 import "./interface/IOracle.sol";
 import "./interface/ISwap.sol";
 import "./Poption.sol";
+import "./SlotNum.sol";
 import "./BlackScholesSwap.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -19,7 +20,7 @@ contract PoptionDeployer {
         address _token,
         address _oracle,
         uint256 _settleTime,
-        uint128[16] memory slots_
+        uint128[SLOT_NUM] memory slots_
     ) external returns (Poption) {
         return new Poption(_token, _oracle, _settleTime, slots_);
     }
@@ -57,11 +58,11 @@ contract Helper {
         IERC20 token,
         address oracle,
         uint256[3] calldata times,
-        uint128[16] calldata slots,
+        uint128[SLOT_NUM] calldata slots,
         uint128[3] calldata swapArgs,
         bool isCash,
         uint128 amount,
-        uint128[16] memory poolInit
+        uint128[SLOT_NUM] memory poolInit
     ) external {
         Poption poption = poptionDeployer.deploy(
             address(token),
@@ -84,7 +85,7 @@ contract Helper {
         token.approve(address(poption), amount);
         poption.mint(amount);
         poption.transfer(address(swap), poolInit);
-        for (uint256 i = 0; i < 16; i++) {
+        for (uint256 i = 0; i < SLOT_NUM; i++) {
             poolInit[i] = amount - poolInit[i];
         }
         poption.transfer(msg.sender, poolInit);

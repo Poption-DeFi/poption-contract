@@ -10,6 +10,7 @@ chai.use(solidity);
 chai.use(chaiAsPromised);
 const tus = require("../testUtils");
 const readGas = tus.readGas;
+const SLOT_NUM = 10;
 
 const slots = [
   "416821430997571584",
@@ -28,7 +29,7 @@ const slots = [
   "14282946835016896512",
   "15349571866095306752",
   "16349571866095306752",
-];
+].slice(0, SLOT_NUM);
 const prepareEnv = async () => {
   const signers = await ethers.getSigners();
   const Oracle = await ethers.getContractFactory("TestOracle");
@@ -106,7 +107,7 @@ _.mapKeys(inits, (getSwap, swapName) => {
 
       poption.transfer(
         swap.address,
-        _.map(_.range(16), () => parseEther("1.9"))
+        _.map(_.range(SLOT_NUM), () => parseEther("1.9"))
       );
       await expect(swap.connect(addr1).init()).to.fulfilled;
       await expect(swap.connect(addr1).init()).to.rejectedWith(Error, "INITED");
@@ -123,8 +124,8 @@ _.mapKeys(inits, (getSwap, swapName) => {
     });
 
     xit("can swap", async () => {
-      const _in = _.map(_.range(16), (i) => BigNumber.from(i * 1000000));
-      const _out = _.map(_.range(16), (i) => BigNumber.from(i * 800000));
+      const _in = _.map(_.range(SLOT_NUM), (i) => BigNumber.from(i * 1000000));
+      const _out = _.map(_.range(SLOT_NUM), (i) => BigNumber.from(i * 800000));
       const seed = 1;
       const data = solidityKeccak256(
         ["address", "address", "address", "uint128[16]", "uint64"],
@@ -145,8 +146,8 @@ _.mapKeys(inits, (getSwap, swapName) => {
     });
 
     it("can swap from poption", async () => {
-      const _in = _.map(_.range(16), (i) => BigNumber.from(i * 1000000));
-      const _out = _.map(_.range(16), (i) => BigNumber.from(i * 800000));
+      const _in = _.map(_.range(SLOT_NUM), (i) => BigNumber.from(i * 1000000));
+      const _out = _.map(_.range(SLOT_NUM), (i) => BigNumber.from(i * 800000));
 
       readGas(
         await expect(poption.connect(addr2).swap(swap.address, _out, _in)).to
@@ -158,8 +159,8 @@ _.mapKeys(inits, (getSwap, swapName) => {
     });
 
     it("can mint and swap from poption", async () => {
-      const _in = _.map(_.range(16), (i) => BigNumber.from(i * 1000000));
-      const _out = _.map(_.range(16), (i) => BigNumber.from(i * 800000));
+      const _in = _.map(_.range(SLOT_NUM), (i) => BigNumber.from(i * 1000000));
+      const _out = _.map(_.range(SLOT_NUM), (i) => BigNumber.from(i * 800000));
       await erc20.connect(addr2).mint(2000);
       await erc20.connect(addr2).approve(poption.address, 2000);
 
@@ -174,8 +175,8 @@ _.mapKeys(inits, (getSwap, swapName) => {
     });
 
     it("can burn swap from poption", async () => {
-      const _in = _.map(_.range(16), (i) => BigNumber.from(i * 1000000));
-      const _out = _.map(_.range(16), (i) => BigNumber.from(i * 800000));
+      const _in = _.map(_.range(SLOT_NUM), (i) => BigNumber.from(i * 1000000));
+      const _out = _.map(_.range(SLOT_NUM), (i) => BigNumber.from(i * 800000));
 
       readGas(
         await expect(
@@ -187,15 +188,17 @@ _.mapKeys(inits, (getSwap, swapName) => {
       );
     });
     it("cannot swap because of reject by trade function", async () => {
-      const _in = _.map(_.range(16), (i) => BigNumber.from(i * 1000000));
-      const _out = _.map(_.range(16), (i) => BigNumber.from(990000).mul(i));
+      const _in = _.map(_.range(SLOT_NUM), (i) => BigNumber.from(i * 1000000));
+      const _out = _.map(_.range(SLOT_NUM), (i) =>
+        BigNumber.from(990000).mul(i)
+      );
       await expect(
         poption.connect(addr2).swap(swap.address, _out, _in)
       ).be.rejectedWith(Error, /.*PMC.*/);
     });
 
     it("cannot swap because of reject by not enough liquidity", async () => {
-      const _in = _.map(_.range(16), (i) => BigNumber.from(i * 1000000));
+      const _in = _.map(_.range(SLOT_NUM), (i) => BigNumber.from(i * 1000000));
       const _out = await poption.balanceOfAll(swap.address);
 
       await expect(
@@ -293,8 +296,10 @@ _.mapKeys(inits, (getSwap, swapName) => {
     });
 
     it("can remove liquidity 2", async () => {
-      const _in = _.map(_.range(16), (i) => BigNumber.from(i * 10000000000000));
-      const _out = _.map(_.range(16), (i) => BigNumber.from(i * 1000000));
+      const _in = _.map(_.range(SLOT_NUM), (i) =>
+        BigNumber.from(i * 10000000000000)
+      );
+      const _out = _.map(_.range(SLOT_NUM), (i) => BigNumber.from(i * 1000000));
       await poption.connect(addr2).swap(swap.address, _out, _in);
 
       const share = await swap.liqPoolShare(addr2.address);
@@ -316,8 +321,8 @@ _.mapKeys(inits, (getSwap, swapName) => {
     it("cannot swap after close time", async () => {
       await network.provider.send("evm_increaseTime", [100]);
       await network.provider.send("evm_mine");
-      const _in = _.map(_.range(16), (i) => BigNumber.from(i * 1000000));
-      const _out = _.map(_.range(16), (i) => BigNumber.from(i * 800000));
+      const _in = _.map(_.range(SLOT_NUM), (i) => BigNumber.from(i * 1000000));
+      const _out = _.map(_.range(SLOT_NUM), (i) => BigNumber.from(i * 800000));
 
       await expect(
         poption.connect(addr2).swap(swap.address, _out, _in)
@@ -436,7 +441,7 @@ describe(`test BlackScholesSwap 2`, () => {
 
     poption.transfer(
       swap.address,
-      _.map(_.range(16), () => parseEther("1.9"))
+      _.map(_.range(SLOT_NUM), () => parseEther("1.9"))
     );
     await expect(swap.connect(addr1).init()).to.fulfilled;
     const status = await swap.getStatus();
@@ -446,11 +451,11 @@ describe(`test BlackScholesSwap 2`, () => {
 
   it("can reweight", async () => {
     const oldWeight = (await swap.getStatus())[0];
-    await oracle.set(slots[9]);
+    await oracle.set(slots[5]);
     const currWeight = (await swap.getStatus())[0];
     expect(oldWeight).not.eql(currWeight);
-    expect(+currWeight[9]).to.gt(+currWeight[10]);
-    expect(+currWeight[8]).to.gt(+currWeight[11]);
-    expect(+currWeight[10]).to.gt(+currWeight[11]);
+    expect(+currWeight[5]).to.gt(+currWeight[6]);
+    expect(+currWeight[4]).to.gt(+currWeight[7]);
+    expect(+currWeight[6]).to.gt(+currWeight[7]);
   });
 });
