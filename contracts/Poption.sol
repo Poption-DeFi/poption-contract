@@ -37,19 +37,34 @@ contract Poption is IERC1155 {
     uint128 public settleWeight0;
     uint128 public settleWeight1;
 
+    event Settle(uint128 price);
+    event Mint(address owner, uint128 asset);
+
+    event Burn(address owner, uint128 asset);
+
+    event CreatePoption(
+        address indexed token,
+        address indexed oracle,
+        uint256 settleTime,
+        uint128[SLOT_NUM] slots
+    );
+
+    event ExercisePoption(uint128 asset, uint128 tail);
+
     constructor(
         address _token,
         address _oracle,
         uint256 _settleTime,
-        uint128[SLOT_NUM] memory slots_
+        uint128[SLOT_NUM] memory _slots
     ) {
         token = _token;
         oracle = IOracle(_oracle);
         settleTime = _settleTime;
-        slots = slots_;
+        slots = _slots;
         for (uint256 i = 0; i < SLOT_NUM; i++) {
             allIds.push(i);
         }
+        emit CreatePoption(_token, _oracle, _settleTime, _slots);
     }
 
     function getState()
@@ -101,6 +116,7 @@ contract Poption is IERC1155 {
                     settleWeight0 = (slots[settleIdx] - price).div(delta);
                     settleWeight1 = (price - slots[settleIdx - 1]).div(delta);
                 }
+                emit Settle(price);
             }
             require(isSettled, "NSET");
         }
@@ -172,28 +188,30 @@ contract Poption is IERC1155 {
         _transfer(msg.sender, _recipient, _option);
     }
 
-    function mint(uint128 _assert) public noReentrant {
-        _safeTokenTransferFrom(token, msg.sender, address(this), _assert);
+    function mint(uint128 _asset) public noReentrant {
+        _safeTokenTransferFrom(token, msg.sender, address(this), _asset);
         uint256[] memory value = new uint256[](SLOT_NUM);
         for (uint256 i = 0; i < SLOT_NUM; i++) {
-            options[msg.sender][i] += _assert;
+            options[msg.sender][i] += _asset;
         }
-        totalLockedAsset += _assert;
+        totalLockedAsset += _asset;
         emit TransferBatch(msg.sender, address(0), msg.sender, allIds, value);
+        emit Mint(msg.sender, _asset);
     }
 
-    function burn(uint128 _assert) public noReentrant {
+    function burn(uint128 _asset) public noReentrant {
         uint256[] memory value = new uint256[](SLOT_NUM);
         unchecked {
             for (uint256 i = 0; i < SLOT_NUM; i++) {
-                require(_assert <= options[msg.sender][i], "NEO");
-                options[msg.sender][i] -= _assert;
-                value[i] = _assert;
+                require(_asset <= options[msg.sender][i], "NEO");
+                options[msg.sender][i] -= _asset;
+                value[i] = _asset;
             }
         }
-        _safeTokenTransfer(token, address(msg.sender), uint256(_assert));
-        totalLockedAsset -= _assert;
+        _safeTokenTransfer(token, address(msg.sender), uint256(_asset));
+        totalLockedAsset -= _asset;
         emit TransferBatch(msg.sender, msg.sender, address(0), allIds, value);
+        emit Burn(msg.sender, _asset);
     }
 
     function outSwap(
@@ -237,9 +255,7 @@ contract Poption is IERC1155 {
 
     function exerciseTail(uint128 tail) public noReentrant {
         settle();
-        uint128 _assert = options[msg.sender][settleIdx - 1].mul(
-            settleWeight0
-        ) +
+        uint128 asset = options[msg.sender][settleIdx - 1].mul(settleWeight0) +
             options[msg.sender][settleIdx].mul(settleWeight1) -
             tail;
         uint256[] memory value = new uint256[](SLOT_NUM);
@@ -248,9 +264,10 @@ contract Poption is IERC1155 {
 
         options[msg.sender][settleIdx - 1] = 0;
         options[msg.sender][settleIdx] = 0;
-        _safeTokenTransfer(token, address(msg.sender), _assert);
-        totalLockedAsset -= _assert;
+        _safeTokenTransfer(token, address(msg.sender), asset);
+        totalLockedAsset -= asset;
         emit TransferBatch(msg.sender, msg.sender, address(0), allIds, value);
+        emit ExercisePoption(asset, tail);
     }
 
     /** ERC1155 interface */

@@ -50,7 +50,7 @@ describe("test swap", () => {
   });
 
   it("always reject toswap", async () => {
-    await expect(swap.toSwap(_.range(16), _.range(16))).be.rejected;
+    await expect(swap.toSwap(_.range(SLOT_NUM), _.range(SLOT_NUM))).be.rejected;
   });
 
   it("always reject toLiqudIn", async () => {
@@ -59,7 +59,8 @@ describe("test swap", () => {
 
   it("always accept toswap", async () => {
     await swap.set(true);
-    await expect(swap.toSwap(_.range(16), _.range(16))).to.fulfilled;
+    await expect(swap.toSwap(_.range(SLOT_NUM), _.range(SLOT_NUM))).to
+      .fulfilled;
   });
 
   it("always accept toLiquidIn", async () => {
