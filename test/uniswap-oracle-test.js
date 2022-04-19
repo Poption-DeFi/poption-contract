@@ -14,7 +14,7 @@ describe("Oracle", () => {
     const Erc20 = await ethers.getContractFactory("TestERC20");
     erc20 = await Erc20.deploy("test", "TST", 18);
     erc202 = await Erc20.deploy("test2", "TST2", 6);
-    const Pool = await ethers.getContractFactory("Pool");
+    const Pool = await ethers.getContractFactory("TestPool");
     pool = await Pool.deploy(erc202.address, erc20.address);
     await pool.deployed();
   });
