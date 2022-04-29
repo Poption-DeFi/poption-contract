@@ -28,6 +28,9 @@ module.exports = {
     polygon: {
       url: process.env.POLYGON_URL || "",
     },
+    polygonMumbai: {
+      url: process.env.POLYGON_MUMBAI_URL || "",
+    },
     hardhat: {
       chainId: 1999,
     },
@@ -36,6 +39,8 @@ module.exports = {
     enabled: process.env.REPORT_GAS || false,
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY || "",
+    apiKey: {
+      polygon: process.env.ETHERSCAN_POLYGON_API_KEY || "",
+    },
   },
 };
