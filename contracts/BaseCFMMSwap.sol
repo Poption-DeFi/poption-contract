@@ -41,6 +41,27 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
     string public name;
     uint8 public decimals;
 
+    event Swap(
+        uint128[SLOT_NUM] _in,
+        uint128[SLOT_NUM] _out,
+        uint128[SLOT_NUM] weight,
+        uint128[SLOT_NUM] liqPool
+    );
+
+    event Mint(
+        address owner,
+        uint128 share,
+        uint128 shareAll,
+        uint128[SLOT_NUM] liqPool
+    );
+
+    event Burn(
+        address owner,
+        uint128 share,
+        uint128 shareAll,
+        uint128[SLOT_NUM] liqPool
+    );
+
     constructor(
         address _owner,
         address _poption,
@@ -202,6 +223,7 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
         for (uint256 i = 0; i < SLOT_NUM; i++) {
             liqPool[i] = liqPool[i] + _in[i] - _out[i];
         }
+        emit Swap(_in, _out, weight, liqPool);
     }
 
     function toSwap(
@@ -224,6 +246,7 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
             liqPool[i] += _frac.mul(liqPool[i]);
         }
         valueNoFee[_sender] += _frac.div(priceDivisor);
+        emit Mint(_sender, shareAdd, liqPoolShareAll, liqPool);
     }
 
     function toLiquidIn(uint128 _frac, address _sender)
@@ -260,6 +283,7 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
             liqPoolShareAll -= _share - optShare;
             valueNoFee[msg.sender] = 0;
             emit Transfer(msg.sender, address(0), _share - optShare);
+            emit Burn(msg.sender, _share - optShare, liqPoolShareAll, liqPool);
         } else {
             liqPoolShare[msg.sender] -= _share;
             liqPoolShareAll -= _share;
@@ -268,6 +292,7 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
                 liqPool[i] -= lqRemove[i];
             }
             emit Transfer(msg.sender, address(0), _share);
+            emit Burn(msg.sender, _share, liqPoolShareAll, liqPool);
         }
         poption.transfer(msg.sender, lqRemove);
     }

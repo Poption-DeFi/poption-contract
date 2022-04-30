@@ -6,7 +6,7 @@
  */
 pragma solidity ^0.8.4;
 
-contract Pool {
+contract TestPool {
     struct Slot0 {
         uint160 sqrtPriceX96;
         int24 tick;

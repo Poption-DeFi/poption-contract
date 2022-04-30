@@ -23,7 +23,9 @@ contract TestSwap is ISwap {
         require(value, "RJ");
     }
 
-    function toSwap(uint128[16] calldata, uint128[16] calldata) external {
+    function toSwap(uint128[SLOT_NUM] calldata, uint128[SLOT_NUM] calldata)
+        external
+    {
         require(value, "RJ");
     }
 }

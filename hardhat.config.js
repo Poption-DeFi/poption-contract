@@ -28,14 +28,17 @@ module.exports = {
     polygon: {
       url: process.env.POLYGON_URL || "",
     },
+    polygonMumbai: {
+      url: process.env.POLYGON_MUMBAI_URL || "",
+    },
     hardhat: {
       chainId: 1999,
     },
   },
   gasReporter: {
-    enabled: process.env.REPORT_GAS || false,
+    enabled: +process.env.REPORT_GAS || false,
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY || "",
+    apiKey: process.env.ETHERSCAN_POLYGON_API_KEY || "",
   },
 };

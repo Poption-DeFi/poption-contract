@@ -1,6 +1,6 @@
 module.exports = {
   artifacts: {
-    ERC20: require("./artifacts/@openzeppelin/contracts/token/ERC20/ERC20.sol/ERC20.json"),
+    IERC20Metadata: require("./artifacts/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol/IERC20Metadata.json"),
     Poption: require("./artifacts/contracts/Poption.sol/Poption.json"),
     BaseCFMMSwap: require("./artifacts/contracts/BaseCFMMSwap.sol/BaseCFMMSwap.json"),
     BlackScholesSwap: require("./artifacts/contracts/BlackScholesSwap.sol/BlackScholesSwap.json"),
