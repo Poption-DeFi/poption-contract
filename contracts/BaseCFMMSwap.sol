@@ -129,8 +129,8 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
             share += _option[i];
         }
         share = share / uint128(SLOT_NUM);
-        liqPoolShare[msg.sender] += share;
-        valueNoFee[msg.sender] = 0x7fffffffffffffffffffffffffffffff;
+        liqPoolShare[owner] += share;
+        valueNoFee[owner] = 0x7fffffffffffffffffffffffffffffff;
         liqPoolShareAll += share;
     }
 
