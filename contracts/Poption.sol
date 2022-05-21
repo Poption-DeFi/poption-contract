@@ -94,12 +94,12 @@ contract Poption is IERC1155 {
                 isSettled = true;
                 if (price <= slots[0]) {
                     settleIdx = 1;
-                    settleWeight0 = 1;
+                    settleWeight0 = uint128(Math64x64.ONE);
                     settleWeight1 = 0;
                 } else if (price >= slots[SLOT_NUM - 1]) {
                     settleIdx = uint8(SLOT_NUM - 1);
                     settleWeight0 = 0;
-                    settleWeight1 = 1;
+                    settleWeight1 = uint128(Math64x64.ONE);
                 } else {
                     uint8 h = uint8(SLOT_NUM - 1);
                     uint8 l = 0;
@@ -114,7 +114,7 @@ contract Poption is IERC1155 {
                     }
                     uint128 delta = slots[settleIdx] - slots[settleIdx - 1];
                     settleWeight0 = (slots[settleIdx] - price).div(delta);
-                    settleWeight1 = (price - slots[settleIdx - 1]).div(delta);
+                    settleWeight1 = uint128(Math64x64.ONE) - settleWeight0;
                 }
                 emit Settle(price);
             }
