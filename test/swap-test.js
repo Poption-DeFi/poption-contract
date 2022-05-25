@@ -30,13 +30,14 @@ const slots = [
   "15349571866095306752",
   "16349571866095306752",
 ].slice(0, SLOT_NUM);
-const prepareEnv = async () => {
+
+const prepareEnv_ = async (price, slots, decimals, timeDelta) => {
   const signers = await ethers.getSigners();
   const Oracle = await ethers.getContractFactory("TestOracle");
   const oracle = await Oracle.deploy();
-  await oracle.set("5968887162520422400");
+  await oracle.set(price);
   const Erc20 = await ethers.getContractFactory("TestERC20");
-  const erc20 = await Erc20.deploy("test", "TST", 18);
+  const erc20 = await Erc20.deploy("test", "TST", decimals);
   await Promise.all([oracle.deployed(), erc20.deployed()]);
   await Promise.all(
     _.map(signers, (i) => erc20.connect(i).mint(parseEther("3")))
@@ -49,7 +50,7 @@ const prepareEnv = async () => {
   const poption = await Poption.deploy(
     erc20.address,
     oracle.address,
-    time + 200,
+    time + timeDelta,
     _.map(slots, BigNumber.from)
   );
   await poption.deployed();
@@ -61,6 +62,10 @@ const prepareEnv = async () => {
     })
   );
   return [erc20, oracle, poption];
+};
+
+const prepareEnv = async () => {
+  return await prepareEnv_("5968887162520422400", slots, 18, 200);
 };
 
 const inits = {
@@ -543,5 +548,184 @@ describe(`test BlackScholesSwap 2`, () => {
     const currWeight = (await swap.getStatus())[0];
     expect(oldWeight).not.eql(currWeight);
     expect(+currWeight[5]).to.gt(+oldWeight[5]);
+  });
+});
+
+describe("test BlackScholesSwap 3", () => {
+  let oracle, erc20, poption, swap;
+  let owner, addr1, addr2, addr3, addrs;
+  before(async () => {
+    const signers = await ethers.getSigners();
+    [owner, addr1, addr2, addr3, ...addrs] = signers;
+    [erc20, oracle, poption] = await prepareEnv_(
+      "5968887162520422400",
+      slots,
+      6,
+      200
+    );
+  });
+
+  it("can init", async () => {
+    const Swap = await ethers.getContractFactory("BlackScholesSwap");
+    const settleTime = await poption.settleTime();
+    swap = await Swap.deploy(
+      addr1.address,
+      poption.address,
+      settleTime - 100,
+      settleTime + 100,
+      BigNumber.from("19553548718132125696"),
+      BigNumber.from("0x28f5c28f5c29000"),
+      BigNumber.from("316757209401000000"),
+      false
+    );
+    await expect(swap.deployed()).to.fulfilled;
+
+    poption.transfer(
+      swap.address,
+      _.map(_.range(SLOT_NUM), () => 100000)
+    );
+    await expect(swap.connect(addr1).init()).to.fulfilled;
+    const status = await swap.getStatus();
+    expect(status[1]).to.eql(await poption.balanceOfAll(swap.address));
+    expect((await swap.liqPoolShareAll()).toString()).to.eql("100000");
+  });
+
+  it("can reweight from time change 2", async () => {
+    function tradeToInOut(get, give) {
+      return [
+        _.map(get, (i) => tus.BigFloat.max(tus.BF(i).sub(give), 0).toFixed(0)),
+        _.map(get, (i) => tus.BigFloat.max(tus.BF(give).sub(i), 0).toFixed(0)),
+      ];
+    }
+    const want = _.map(_.range(0, 32000, 2000), tus.BF);
+    await oracle.set(slots[1]);
+    const states = await swap.getStatus();
+    [_out, _in] = tradeToInOut(want, 2170);
+    await expect(poption.connect(addr2).swap(swap.address, _out, _in)).to
+      .fulfilled;
+    [_out, _in] = tradeToInOut(want, 2169);
+    await expect(
+      poption.connect(addr2).swap(swap.address, _out, _in)
+    ).to.rejectedWith(Error, /.*PMC.*/);
+  });
+});
+
+describe("test BlackScholesSwap 4", () => {
+  let oracle, erc20, poption, swap;
+  let owner, addr1, addr2, addr3, addrs;
+  before(async () => {
+    const signers = await ethers.getSigners();
+    [owner, addr1, addr2, addr3, ...addrs] = signers;
+    [erc20, oracle, poption] = await prepareEnv_(
+      "5968887162520422400",
+      _.map(
+        [
+          "1000",
+          "1200",
+          "1400",
+          "1600",
+          "1800",
+          "2000",
+          "2200",
+          "2400",
+          "2600",
+          "2800",
+          "3000",
+          "3200",
+          "3400",
+          "3600",
+          "3800",
+          "4000",
+        ],
+        tus.toInt
+      ),
+      6,
+      197828
+    );
+  });
+
+  it("can init", async () => {
+    const Swap = await ethers.getContractFactory("BlackScholesSwap");
+    const settleTime = await poption.settleTime();
+    swap = await Swap.deploy(
+      addr1.address,
+      poption.address,
+      settleTime - 100,
+      settleTime + 100,
+      BigNumber.from(
+        tus.toInt(
+          "1.0500000000000000000108420217248550443400745280086994171142578125"
+        )
+      ),
+      BigNumber.from("0x28f5c28f5c29000"),
+      BigNumber.from(
+        tus.toInt(
+          "0.0003214723705746387930580476588460214770748279988765716552734375"
+        )
+      ),
+      true
+    );
+    await expect(swap.deployed()).to.fulfilled;
+
+    poption.transfer(swap.address, [
+      "8777004757",
+      "8649006632",
+      "8242620225",
+      "7836233819",
+      "7429847413",
+      "7023461007",
+      "6617074601",
+      "6210688194",
+      "5804301788",
+      "5397915382",
+      "4991528976",
+      "4585142569",
+      "4178756163",
+      "3772369757",
+      "3365983351",
+      "2681208664",
+    ]);
+    await expect(swap.connect(addr1).init()).to.fulfilled;
+    const status = await swap.getStatus();
+    expect(status[1]).to.eql(await poption.balanceOfAll(swap.address));
+  });
+
+  it("can reweight from time change 2", async () => {
+    function tradeToInOut(get, give) {
+      return [
+        _.map(get, (i) => tus.BigFloat.max(tus.BF(i).sub(give), 0).toFixed(0)),
+        _.map(get, (i) => tus.BigFloat.max(tus.BF(give).sub(i), 0).toFixed(0)),
+      ];
+    }
+    const want = [
+      "0",
+      "-200000000",
+      "-400000000",
+      "-600000000",
+      "-800000000",
+      "-1000000000",
+      "-1200000000",
+      "-1400000000",
+      "-1600000000",
+      "-1800000000",
+      "-2000000000",
+      "-2200000000",
+      "-2400000000",
+      "-2600000000",
+      "-2800000000",
+      "-3000000000",
+    ];
+    await oracle.set(
+      tus.toInt(
+        "2079.54950615921631274277646406201114359646453522145748138427734375"
+      )
+    );
+    const states = await swap.getStatus();
+    // console.log(_.map(states[0], (i) => tus.toDec(i)));
+    // console.log(_.map(states[1], (i) => i.toString()));
+    // console.log(tus.toDec(states[2]));
+    const [_out, _in] = tradeToInOut(want, "-1089593786");
+    await expect(poption.connect(addr2).swap(swap.address, _out, _in)).be
+      .fulfilled;
   });
 });

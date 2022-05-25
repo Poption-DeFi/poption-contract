@@ -8,7 +8,7 @@ const chaiAsPromised = require("chai-as-promised");
 chai.use(solidity);
 chai.use(chaiAsPromised);
 
-describe("Oracle", () => {
+describe("Uniswap Oracle", () => {
   let pool, oracle, erc20, erc202;
   before(async () => {
     const Erc20 = await ethers.getContractFactory("TestERC20");

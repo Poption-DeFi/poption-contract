@@ -19,12 +19,13 @@ contract TestSwap is ISwap {
         value = _value;
     }
 
-    function toLiquidIn(uint128, address) external {
+    function toLiquidIn(uint128, address) external view {
         require(value, "RJ");
     }
 
     function toSwap(uint128[SLOT_NUM] calldata, uint128[SLOT_NUM] calldata)
         external
+        view
     {
         require(value, "RJ");
     }

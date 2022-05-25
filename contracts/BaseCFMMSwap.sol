@@ -103,6 +103,19 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
         _;
     }
 
+    function getFee()
+        public
+        view
+        virtual
+        returns (uint128[SLOT_NUM] memory fee)
+    {
+        unchecked {
+            for (uint256 i = 0; i < SLOT_NUM; i++) {
+                fee[i] = feeRate;
+            }
+        }
+    }
+
     function getWeight()
         public
         view
@@ -129,8 +142,8 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
             share += _option[i];
         }
         share = share / uint128(SLOT_NUM);
-        liqPoolShare[msg.sender] += share;
-        valueNoFee[msg.sender] = 0x7fffffffffffffffffffffffffffffff;
+        liqPoolShare[owner] += share;
+        valueNoFee[owner] = 0x7fffffffffffffffffffffffffffffff;
         liqPoolShareAll += share;
     }
 
@@ -152,12 +165,13 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
         return (getWeight(), liqPool, feeRate);
     }
 
-    function tradeFunction(
+    function tradeDiff(
         uint128[SLOT_NUM] memory liq,
+        uint128[SLOT_NUM] memory to,
         uint128[SLOT_NUM] memory w
     ) internal pure returns (int128 res) {
         for (uint256 i = 0; i < SLOT_NUM; i++) {
-            res += liq[i].ln().mul(int128(w[i]));
+            res += ((to[i]).ln() - (liq[i]).ln()).mul(int128(w[i]));
         }
     }
 
@@ -177,12 +191,12 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
             uint128 price = IOracle(oracle).get();
             if (price <= slots[0]) {
                 settleIdx = 1;
-                settleWeight0 = 0x010000000000000000;
+                settleWeight0 = uint128(Math64x64.ONE);
                 settleWeight1 = 0;
             } else if (price >= slots[SLOT_NUM - 1]) {
                 settleIdx = uint8(SLOT_NUM - 1);
                 settleWeight0 = 0;
-                settleWeight1 = 0x010000000000000000;
+                settleWeight1 = uint128(Math64x64.ONE);
             } else {
                 uint8 h = uint8(SLOT_NUM - 1);
                 uint8 l = 0;
@@ -211,15 +225,14 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
         uint128[SLOT_NUM] calldata _in
     ) internal {
         uint128[SLOT_NUM] memory weight = getWeight();
-        int256 constNow = tradeFunction(liqPool, weight);
+        uint128[SLOT_NUM] memory fee = getFee();
         uint128[SLOT_NUM] memory lpTo;
         for (uint256 i = 0; i < SLOT_NUM; i++) {
-            uint128 outi = _out[i].mul(feeRate);
+            uint128 outi = _out[i].mul(fee[i]);
             require(liqPool[i] > outi, "PLQ");
-            lpTo[i] = liqPool[i] + _in[i].div(feeRate) - outi;
+            lpTo[i] = liqPool[i] + _in[i].div(fee[i]) - outi;
         }
-        int256 constTo = tradeFunction(lpTo, weight);
-        require(constTo >= constNow, "PMC");
+        require(tradeDiff(liqPool, lpTo, weight) >= 0, "PMC");
         for (uint256 i = 0; i < SLOT_NUM; i++) {
             liqPool[i] = liqPool[i] + _in[i] - _out[i];
         }

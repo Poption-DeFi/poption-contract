@@ -584,3 +584,63 @@ describe("test erc1155", () => {
     ).to.be.rejectedWith(Error, "ERC1155: ERC1155Receiver rejected tokens");
   });
 });
+
+describe("test poption", () => {
+  let oracle, erc20, poption, swap;
+  let owner, addr1, addr2, addr3, addrs;
+  before(async () => {
+    [owner, addr1, addr2, addr3, ...addrs] = await ethers.getSigners();
+    const Oracle = await ethers.getContractFactory("TestOracle");
+    oracle = await Oracle.deploy();
+    const Erc20 = await ethers.getContractFactory("TestERC20");
+    erc20 = await Erc20.deploy("test", "TST", 18);
+    await Promise.all([oracle.deployed(), erc20.deployed()]);
+    await erc20.mint(parseEther("2"));
+    await erc20.connect(addr2).mint(parseEther("2"));
+    const Swap = await ethers.getContractFactory("TestSwap");
+    swap = await Swap.deploy();
+    await swap.deployed();
+  });
+
+  for (let settlePrice = 50000; settlePrice < 1700001; settlePrice += 400000) {
+    it("should be initialized", async () => {
+      const Poption = await ethers.getContractFactory("Poption");
+
+      const blockId = await ethers.provider.getBlockNumber();
+      const time = await ethers.provider
+        .getBlock(blockId)
+        .then(({ timestamp }) => timestamp);
+      poption = await Poption.deploy(
+        erc20.address,
+        oracle.address,
+        time + 200,
+        _.range(100000, 1600001, 100000).slice(0, SLOT_NUM)
+      );
+      await poption.deployed();
+    });
+
+    it(`can mint and exercises at ${settlePrice}`, async () => {
+      const amount = parseEther("1.5");
+      await erc20.approve(poption.address, amount);
+      estGas(poption.estimateGas.mint(amount));
+      await expect(() => poption.mint(amount)).to.changeTokenBalances(
+        erc20,
+        [poption, owner],
+        [amount, amount.mul(-1)]
+      );
+      expect(await poption.balanceOfAll(owner.address)).to.eql(
+        _.map(_.range(SLOT_NUM), (i) => amount)
+      );
+
+      await oracle.set(settlePrice);
+      await expect(poption.exercise()).be.rejectedWith(Error, /.*NSET.*/);
+      await network.provider.send("evm_increaseTime", [300]);
+      await network.provider.send("evm_mine");
+      await expect(() => poption.exercise()).to.changeTokenBalance(
+        erc20,
+        owner,
+        parseEther("1.5")
+      );
+    });
+  }
+});
