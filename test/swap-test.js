@@ -721,10 +721,11 @@ describe("test BlackScholesSwap 4", () => {
       )
     );
     const states = await swap.getStatus();
-    console.log(_.map(states[0], (i) => tus.toDec(i)));
-    console.log(_.map(states[1], (i) => i.toString()));
-    console.log(tus.toDec(states[2]));
+    // console.log(_.map(states[0], (i) => tus.toDec(i)));
+    // console.log(_.map(states[1], (i) => i.toString()));
+    // console.log(tus.toDec(states[2]));
     const [_out, _in] = tradeToInOut(want, "-1089593786");
-    await poption.connect(addr2).swap(swap.address, _out, _in);
+    await expect(poption.connect(addr2).swap(swap.address, _out, _in)).be
+      .fulfilled;
   });
 });

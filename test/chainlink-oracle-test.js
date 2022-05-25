@@ -8,7 +8,7 @@ const chaiAsPromised = require("chai-as-promised");
 chai.use(solidity);
 chai.use(chaiAsPromised);
 
-describe("Oracle", () => {
+describe("Chainlink Oracle", () => {
   let pool, oracle, erc20, erc202;
   before(async () => {
     const Chainlink = await ethers.getContractFactory("ChainlinkMoke");
@@ -36,7 +36,7 @@ describe("Oracle", () => {
     await chainlink.deployed();
   });
 
-  describe("Chainlink oracle", () => {
+  describe("test 1", () => {
     it("can be init", async () => {
       const Oracle = await ethers.getContractFactory("ChainlinkOracle");
       oracle = await expect(Oracle.deploy(chainlink.address, "ABC", "DEF")).be

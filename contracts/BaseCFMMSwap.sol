@@ -103,6 +103,19 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
         _;
     }
 
+    function getFee()
+        public
+        view
+        virtual
+        returns (uint128[SLOT_NUM] memory fee)
+    {
+        unchecked {
+            for (uint256 i = 0; i < SLOT_NUM; i++) {
+                fee[i] = feeRate;
+            }
+        }
+    }
+
     function getWeight()
         public
         view
@@ -156,7 +169,7 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
         uint128[SLOT_NUM] memory liq,
         uint128[SLOT_NUM] memory to,
         uint128[SLOT_NUM] memory w
-    ) internal view returns (int128 res) {
+    ) internal pure returns (int128 res) {
         for (uint256 i = 0; i < SLOT_NUM; i++) {
             res += ((to[i]).ln() - (liq[i]).ln()).mul(int128(w[i]));
         }
@@ -212,11 +225,12 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
         uint128[SLOT_NUM] calldata _in
     ) internal {
         uint128[SLOT_NUM] memory weight = getWeight();
+        uint128[SLOT_NUM] memory fee = getFee();
         uint128[SLOT_NUM] memory lpTo;
         for (uint256 i = 0; i < SLOT_NUM; i++) {
-            uint128 outi = _out[i].mul(feeRate);
+            uint128 outi = _out[i].mul(fee[i]);
             require(liqPool[i] > outi, "PLQ");
-            lpTo[i] = liqPool[i] + _in[i].div(feeRate) - outi;
+            lpTo[i] = liqPool[i] + _in[i].div(fee[i]) - outi;
         }
         require(tradeDiff(liqPool, lpTo, weight) >= 0, "PMC");
         for (uint256 i = 0; i < SLOT_NUM; i++) {

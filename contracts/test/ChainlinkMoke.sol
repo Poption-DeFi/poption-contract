@@ -9,11 +9,6 @@ pragma solidity ^0.8.4;
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 contract ChainlinkMoke is AggregatorV3Interface {
-    /**
-     * Network: Kovan
-     * Aggregator: ETH/USD
-     * Address: 0x9326BFA02ADD2366b30bacB125260Af641031331
-     */
     uint8 public decimals;
     string public description;
     uint256 public version;
