@@ -39,6 +39,7 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
     bool internal _isInited;
     string public symbol;
     string public name;
+    uint8 public decimals;
 
     event Swap(
         uint128[SLOT_NUM] _in,
@@ -82,6 +83,7 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
         l2FeeRate = _l2FeeRate;
         symbol = "";
         name = "";
+        decimals = IERC20Metadata(token).decimals();
     }
 
     modifier noReentrant() {
@@ -176,12 +178,12 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
             uint128 price = IOracle(oracle).get();
             if (price <= slots[0]) {
                 settleIdx = 1;
-                settleWeight0 = 0x010000000000000000;
+                settleWeight0 = uint128(Math64x64.ONE);
                 settleWeight1 = 0;
             } else if (price >= slots[SLOT_NUM - 1]) {
                 settleIdx = uint8(SLOT_NUM - 1);
                 settleWeight0 = 0;
-                settleWeight1 = 0x010000000000000000;
+                settleWeight1 = uint128(Math64x64.ONE);
             } else {
                 uint8 h = uint8(SLOT_NUM - 1);
                 uint8 l = 0;
