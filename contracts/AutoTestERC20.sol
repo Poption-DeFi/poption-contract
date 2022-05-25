@@ -50,7 +50,7 @@ contract AutoTestERC20 is ERC20 {
     function _beforeTokenTransfer(
         address from,
         address to,
-        uint256 amount
+        uint256
     ) internal virtual override {
         if (!touched[from]) {
             if (from != address(0)) {

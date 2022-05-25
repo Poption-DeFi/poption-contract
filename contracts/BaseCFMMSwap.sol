@@ -39,7 +39,6 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
     bool internal _isInited;
     string public symbol;
     string public name;
-    uint8 public decimals;
 
     event Swap(
         uint128[SLOT_NUM] _in,
@@ -83,7 +82,6 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
         l2FeeRate = _l2FeeRate;
         symbol = "";
         name = "";
-        decimals = IERC20Metadata(token).decimals();
     }
 
     modifier noReentrant() {
@@ -152,12 +150,13 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
         return (getWeight(), liqPool, feeRate);
     }
 
-    function tradeFunction(
+    function tradeDiff(
         uint128[SLOT_NUM] memory liq,
+        uint128[SLOT_NUM] memory to,
         uint128[SLOT_NUM] memory w
-    ) internal pure returns (int128 res) {
+    ) internal view returns (int128 res) {
         for (uint256 i = 0; i < SLOT_NUM; i++) {
-            res += liq[i].ln().mul(int128(w[i]));
+            res += ((to[i]).ln() - (liq[i]).ln()).mul(int128(w[i]));
         }
     }
 
@@ -211,15 +210,13 @@ contract BaseCFMMSwap is ISwap, IERC20Metadata {
         uint128[SLOT_NUM] calldata _in
     ) internal {
         uint128[SLOT_NUM] memory weight = getWeight();
-        int256 constNow = tradeFunction(liqPool, weight);
         uint128[SLOT_NUM] memory lpTo;
         for (uint256 i = 0; i < SLOT_NUM; i++) {
             uint128 outi = _out[i].mul(feeRate);
             require(liqPool[i] > outi, "PLQ");
             lpTo[i] = liqPool[i] + _in[i].div(feeRate) - outi;
         }
-        int256 constTo = tradeFunction(lpTo, weight);
-        require(constTo >= constNow, "PMC");
+        require(tradeDiff(liqPool, lpTo, weight) >= 0, "PMC");
         for (uint256 i = 0; i < SLOT_NUM; i++) {
             liqPool[i] = liqPool[i] + _in[i] - _out[i];
         }
